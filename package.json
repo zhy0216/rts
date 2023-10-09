@@ -1,0 +1,22 @@
+{
+  "name": "muts",
+  "version": "0.0.1",
+  "description": "a subset of TypeScript",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhy0216/muts.git"
+  },
+  "author": "",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/zhy0216/muts/issues"
+  },
+  "homepage": "https://github.com/zhy0216/muts#readme",
+  "devDependencies": {
+    "prettier": "3.0.3",
+    "ts-node": "^10.9.1",
+    "typescript": "5.2.2"
+  }
+}
