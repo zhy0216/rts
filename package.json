@@ -15,6 +15,7 @@
   },
   "homepage": "https://github.com/zhy0216/muts#readme",
   "devDependencies": {
+    "execa": "^8.0.1",
     "prettier": "3.0.3",
     "ts-node": "^10.9.1",
     "typescript": "5.2.2"
