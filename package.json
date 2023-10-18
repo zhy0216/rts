@@ -15,9 +15,12 @@
   },
   "homepage": "https://github.com/zhy0216/muts#readme",
   "devDependencies": {
-    "execa": "^8.0.1",
+    "@types/mocha": "^10.0.3",
+    "execa": "^5.1.1",
+    "mocha": "^10.2.0",
     "prettier": "3.0.3",
     "ts-node": "^10.9.1",
+    "tsimportlib": "^0.0.5",
     "typescript": "5.2.2"
   }
 }
