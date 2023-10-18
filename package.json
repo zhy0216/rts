@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhy0216/muts.git"
+    "url": "git+https://github.com/zhy0216/rts.git"
   },
   "author": "",
   "license": "Apache",
   "bugs": {
-    "url": "https://github.com/zhy0216/muts/issues"
+    "url": "https://github.com/zhy0216/rts/issues"
   },
-  "homepage": "https://github.com/zhy0216/muts#readme",
+  "homepage": "https://github.com/zhy0216/rts#readme",
   "devDependencies": {
     "@types/chai": "^4.3.9",
     "@types/mocha": "^10.0.3",
