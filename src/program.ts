@@ -58,10 +58,10 @@ export class Program implements Emitter {
 
   emit = () => {
     return `
-            int main(void) {
-                ${this.statements.map((s) => s.emit())}
-                return 0;
-            }
+int main(void) {
+    ${this.statements.map((s) => s.emit())}
+    return 0;
+}
         `;
   };
 }

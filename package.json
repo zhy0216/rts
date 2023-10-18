@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "description": "a subset of TypeScript",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "mocha"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zhy0216/muts.git"
@@ -15,7 +17,9 @@
   },
   "homepage": "https://github.com/zhy0216/muts#readme",
   "devDependencies": {
+    "@types/chai": "^4.3.9",
     "@types/mocha": "^10.0.3",
+    "chai": "^4.3.10",
     "execa": "^5.1.1",
     "mocha": "^10.2.0",
     "prettier": "3.0.3",
