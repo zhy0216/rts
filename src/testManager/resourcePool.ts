@@ -1,7 +1,7 @@
 interface Option<R> {
   maxResources: number;
   create: () => R;
-  destroy: (r: R) => void;
+  destroy?: (r: R) => void;
 }
 
 export class ResourcePool<R> {
