@@ -4,6 +4,7 @@
   "description": "a subset of TypeScript",
   "main": "index.js",
   "scripts": {
+    "type": "tsc --noEmit",
     "test": "mocha"
   },
   "repository": {

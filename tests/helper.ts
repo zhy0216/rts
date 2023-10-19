@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { Program } from "../src/program";
 import execa from "execa";
 import { expect } from "chai";
+import { transpile } from "../src/program";
 
 export const testFixtures = (fixturePath: string) => {
   fs.readdirSync(fixturePath)
@@ -18,9 +18,9 @@ export const testFixtures = (fixturePath: string) => {
           encoding: "utf8",
           flag: "r",
         });
-        const program = new Program(sourceCode);
+        const cCode = transpile(sourceCode);
         const exePath = `/tmp${fixturePath}/${file.slice(0, -4)}`;
-        fs.writeFileSync(`${exePath}.c`, program.emit());
+        fs.writeFileSync(`${exePath}.c`, cCode);
         execa.commandSync(`gcc -o  ${exePath} ${exePath}.c`);
         const r = execa.commandSync(exePath);
         expect(r.stdout).to.eq(expectOutput);

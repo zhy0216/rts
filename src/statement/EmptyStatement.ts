@@ -1,5 +1,5 @@
-import { Statement } from "./types";
+import { Emitter } from "../type";
 
-export class EmptyStatement implements Statement {
-  emit = () => "";
-}
+export const emptyStatementEmitter: Emitter = () => ({
+  emit: () => "",
+});
