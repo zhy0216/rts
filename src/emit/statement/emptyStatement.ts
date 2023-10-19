@@ -1,4 +1,4 @@
-import { Emitter } from "../type";
+import { Emitter } from "../../type";
 
 export const emptyStatementEmitter: Emitter = () => ({
   emit: () => "",

@@ -1,13 +1,7 @@
 import * as ts from "typescript";
 import { EmitNode, Emitter } from "./type";
-import { emptyStatementEmitter } from "./statement/EmptyStatement";
+import { getEmitNode } from "./emit/helper";
 // import { CallExpression } from "./expression/CallExpression";
-
-const nodeToEmitter: Record<string, Emitter> = {
-  [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
-  // [ts.SyntaxKind.CallExpression]: (node, option) =>
-  //   new CallExpression(node as ts.CallExpression, option),
-};
 
 export const transpile = (sourceCode: string): string => {
   const sourceFile = ts.createSourceFile(
@@ -41,23 +35,20 @@ export const transpile = (sourceCode: string): string => {
   const checker = tsProgram.getTypeChecker();
 
   const programEmit = programEmitter(tsProgram, { checker });
-  return programEmit.emit();
+  return programEmit?.emit() ?? "";
 };
 
-export const programEmitter: Emitter<ts.Program> = (tsProgram, { checker }) => {
+export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
   const statementEmitNodes: EmitNode[] = [];
 
   const sources = tsProgram
     .getSourceFiles()
     .filter((s) => !s.isDeclarationFile);
-  // ts.isBinaryExpression
+
   for (let source of sources) {
     for (let s of source.statements) {
-      if (s.kind in nodeToEmitter) {
-        statementEmitNodes.push(nodeToEmitter[s.kind](s, { checker }));
-      } else {
-        console.log("not support:", s.getText());
-      }
+      const node = getEmitNode(s, option);
+      node && statementEmitNodes.push(node);
     }
   }
 
