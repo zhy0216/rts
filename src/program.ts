@@ -58,7 +58,7 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 #include <stdio.h>
     
 int main(void) {
-    ${statementEmitNodes.map((s) => s.emit())}
+    ${statementEmitNodes.map((s) => s.emit()).join("")}
     return 0;
 }
 `;

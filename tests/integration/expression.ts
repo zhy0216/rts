@@ -8,5 +8,5 @@ describe("testExpression", async () => {
 
   await execa.command(`mkdir -p /tmp${fixturePath}`);
 
-  testFixtures(fixturePath);
+  await testFixtures(fixturePath);
 });

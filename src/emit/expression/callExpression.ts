@@ -1,5 +1,5 @@
 import { Emitter } from "../../type";
-import ts from "typescript";
+import ts, { TypeFlags } from "typescript";
 
 export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   node,
@@ -15,11 +15,17 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         const type = checker.getTypeAtLocation(argument);
 
         return `
-${type.isLiteral() && `printf("${argument.getText()}");`}        
+${type.isStringLiteral() ? `printf("\\"%s\\"\\n", ${argument.getText()});` : ""}
+${type.isNumberLiteral() ? `printf("${argument.getText()}\\n");` : ""}
+${
+  type.getFlags() & TypeFlags.BooleanLiteral
+    ? `printf("${argument.getText()}\\n");`
+    : ""
+}
 `;
       }
 
-      return `not support call expression ${node}`;
+      return ``;
     },
   };
 };
