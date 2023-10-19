@@ -4,9 +4,8 @@ import execa from "execa";
 import { expect } from "chai";
 import { transpile } from "../src/program";
 
-export const testFixtures = async (fixturePath: string) => {
-  const files = await fs.promises.readdir(fixturePath);
-  files
+export const testFixtures = (fixturePath: string) => {
+  fs.readdirSync(fixturePath)
     .filter((f) => f.endsWith("rts"))
     .forEach((file) => {
       it(`test ${file}`, async () => {
