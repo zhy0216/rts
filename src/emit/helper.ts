@@ -1,11 +1,13 @@
 import { Emitter } from "../type";
 import * as ts from "typescript";
 import { emptyStatementEmitter } from "./statement/emptyStatement";
+import { callExpressionEmitter } from "./expression/callExpression";
+import { expressionStatement } from "./statement/expressionStatement";
 
-const nodeToEmitter: Record<string, Emitter> = {
+const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
-  // [ts.SyntaxKind.CallExpression]: (node, option) =>
-  //   new CallExpression(node as ts.CallExpression, option),
+  [ts.SyntaxKind.CallExpression]: callExpressionEmitter,
+  [ts.SyntaxKind.ExpressionStatement]: expressionStatement,
 };
 
 export const getEmitNode: Emitter = (s, option) => {
