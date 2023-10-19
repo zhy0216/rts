@@ -1,6 +1,5 @@
-import { Statement } from ".";
+import { Statement } from "./types";
 
-
-export class EmptyStatement implements Statement{
-    emit = () => ""
+export class EmptyStatement implements Statement {
+  emit = () => "";
 }

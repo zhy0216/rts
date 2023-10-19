@@ -2,9 +2,15 @@ import * as ts from "typescript";
 import { Emitter } from "./type";
 import { Statement } from "./statement";
 import { EmptyStatement } from "./statement/EmptyStatement";
+import { CallExpression } from "./expression/CallExpression";
 
-const nodeToEmitter: Record<string, (node: ts.Node) => Emitter> = {
+const nodeToEmitter: Record<
+  string,
+  (node: ts.Node, option: { checker: ts.TypeChecker }) => Emitter
+> = {
   [ts.SyntaxKind.EmptyStatement]: (_) => new EmptyStatement(),
+  [ts.SyntaxKind.CallExpression]: (node, option) =>
+    new CallExpression(node as ts.CallExpression, option),
 };
 
 export class Program implements Emitter {
@@ -48,7 +54,9 @@ export class Program implements Emitter {
     for (let source of sources) {
       for (let s of source.statements) {
         if (s.kind in nodeToEmitter) {
-          this.statements.push(nodeToEmitter[s.kind]?.(s));
+          this.statements.push(
+            nodeToEmitter[s.kind]?.(s, { checker: tsTypeChecker }),
+          );
         } else {
           console.log("not support:", s.getText());
         }
@@ -58,10 +66,12 @@ export class Program implements Emitter {
 
   emit = () => {
     return `
+#include <stdio.h>
+    
 int main(void) {
     ${this.statements.map((s) => s.emit())}
     return 0;
 }
-        `;
+`;
   };
 }
