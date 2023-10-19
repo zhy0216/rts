@@ -34,7 +34,12 @@ export const transpile = (sourceCode: string): string => {
   );
   const checker = tsProgram.getTypeChecker();
 
-  const programEmit = programEmitter(tsProgram, { checker });
+  const programEmit = programEmitter(tsProgram, {
+    checker,
+    envRecord: {
+      identifiers: [],
+    },
+  });
   return programEmit?.emit() ?? "";
 };
 
