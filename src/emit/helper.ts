@@ -6,6 +6,7 @@ import { expressionStatement } from "./statement/expressionStatement";
 import { variableStatement } from "./statement/variableStatement";
 import { literalEmitter } from "./expression/literal";
 import { identifierEmitter } from "./expression/identifier";
+import { blockEmitter } from "./statement/block";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -16,6 +17,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.StringLiteral]: literalEmitter,
   [ts.SyntaxKind.BooleanKeyword]: literalEmitter,
   [ts.SyntaxKind.Identifier]: identifierEmitter,
+  [ts.SyntaxKind.Block]: blockEmitter,
 };
 
 export const getEmitNode: Emitter = (s, option) => {
