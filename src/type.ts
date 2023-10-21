@@ -9,10 +9,7 @@ export interface EmitterOption {
   envRecord: EnvRecord;
 }
 
-export type Emitter<T = ts.Node> = (
-  node: T,
-  option: EmitterOption,
-) => EmitNode | undefined;
+export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => EmitNode;
 
 // https://tc39.es/ecma262/multipage/executable-code-and-execution-contexts.html#sec-environment-records
 export interface EnvRecord {
