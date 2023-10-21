@@ -1,12 +1,11 @@
 import * as path from "path";
-import execa from "execa";
 import { testFixtures } from "../helper";
+import { describe } from "bun:test";
 
 describe("testExpression", () => {
-  const projectRoot = __dirname.split(path.sep).slice(0, -2).join(path.sep);
+  const projectRoot = import.meta.dir.split("/").slice(0, -2).join("/");
   const fixturePath = [projectRoot, "fixtures", "expression"].join(path.sep);
-
-  execa.commandSync(`mkdir -p /tmp${fixturePath}`);
+  Bun.spawnSync(["mkdir", " -p /tmp${fixturePath}"]);
 
   testFixtures(fixturePath);
 });

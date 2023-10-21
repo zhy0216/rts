@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
-import execa from "execa";
-import { expect } from "chai";
 import { transpile } from "../src/program";
+import { it, expect } from "bun:test";
 
 export const testFixtures = (fixturePath: string) => {
   fs.readdirSync(fixturePath)
@@ -20,11 +19,15 @@ export const testFixtures = (fixturePath: string) => {
         });
         const cCode = transpile(sourceCode);
         const exePath = `/tmp${fixturePath}/${file.slice(0, -4)}`;
-        await fs.promises.writeFile(`${exePath}.c`, cCode);
-        await execa.command(`gcc -o  ${exePath} ${exePath}.c`);
-        const r = await execa.command(exePath);
-        expect(r.stdout).to.eq(expectOutput);
-        expect(r.exitCode).to.eq(0);
+        const cFile = Bun.file(`${exePath}.c`);
+        await Bun.write(cFile, cCode);
+        const proc = Bun.spawn(["gcc", `${exePath}.c`, "-o", exePath]);
+        await proc.exited;
+        const r = Bun.spawn([exePath]);
+        const output = await new Response(r.stdout).text();
+        await r.exited;
+        expect(output).toEqual(expectOutput);
+        expect(r.exitCode).toEqual(0);
       });
     });
 };
