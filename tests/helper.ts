@@ -21,7 +21,7 @@ export const testFixtures = (fixturePath: string) => {
         const exePath = `/tmp${fixturePath}/${file.slice(0, -4)}`;
         const cFile = Bun.file(`${exePath}.c`);
         await Bun.write(cFile, cCode);
-        const proc = Bun.spawn(["gcc", `${exePath}.c`, "-o", exePath]);
+        const proc = Bun.spawn(["cc", `${exePath}.c`, "-o", exePath]);
         await proc.exited;
         const r = Bun.spawn([exePath]);
         const output = await new Response(r.stdout).text();

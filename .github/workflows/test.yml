@@ -13,6 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: oven-sh/setup-bun@v1
+    - uses: egor-tensin/setup-clang@v1.4
     - run: bun install
     - run: bun type
     - run: bun test
