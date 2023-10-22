@@ -23,12 +23,17 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         if (type.getFlags() & TypeFlags.NumberLike) {
           // TODO: consider number is int first
           emitStrings.push(
-            `printf("%d\\n", ${getEmitNode(argument, option)!.emit()});`,
+            `printf("%d\\n", ${getEmitNode(argument, option).emit()});`,
           );
         }
 
-        if (type.getFlags() & TypeFlags.BooleanLiteral) {
-          emitStrings.push(`printf("${argument.getText()}\\n");`);
+        if (type.getFlags() & TypeFlags.BooleanLike) {
+          emitStrings.push(
+            `printf("%s\\n", ${getEmitNode(
+              argument,
+              option,
+            ).emit()}?"true": "false");`,
+          );
         }
 
         return emitStrings.join("\n");
