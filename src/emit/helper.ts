@@ -26,6 +26,6 @@ export const getEmitNode: Emitter = (s, option) => {
   if (s.kind in nodeToEmitter) {
     return nodeToEmitter[s.kind](s, option);
   } else {
-    console.log("not support:", s.getText());
+    throw new Error(`not support: ${s.getText()}`);
   }
 };

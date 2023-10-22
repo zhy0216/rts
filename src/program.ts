@@ -52,8 +52,11 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 
   for (let source of sources) {
     for (let s of source.statements) {
-      const node = getEmitNode(s, option);
-      node && statementEmitNodes.push(node);
+      try {
+        statementEmitNodes.push(getEmitNode(s, option));
+      } catch (e) {
+        console.log(e);
+      }
     }
   }
 
