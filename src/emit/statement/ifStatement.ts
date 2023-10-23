@@ -10,13 +10,10 @@ export const ifStatementEmitter: Emitter<ts.IfStatement> = (node, option) => ({
         ? `(${conditionString})`
         : conditionString;
     const thenString = getEmitNode(node.thenStatement, option).emit();
-    const thenString2 = ts.isIfStatement(node.thenStatement)
-      ? "else" + thenString
-      : thenString;
     const elseString = node.elseStatement
-      ? getEmitNode(node.elseStatement, option).emit()
+      ? "else " + getEmitNode(node.elseStatement, option).emit()
       : "";
 
-    return `if${conditionString2} ${thenString2} ${elseString}`;
+    return `if${conditionString2} ${thenString} ${elseString}`;
   },
 });
