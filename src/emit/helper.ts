@@ -8,6 +8,7 @@ import { literalEmitter } from "./expression/literal";
 import { identifierEmitter } from "./expression/identifier";
 import { blockEmitter } from "./statement/block";
 import { binaryExpressionEmitter } from "./expression/binaryExpression.ts";
+import { ifStatementEmitter } from "./statement/ifStatement.ts";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -21,6 +22,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.Identifier]: identifierEmitter,
   [ts.SyntaxKind.Block]: blockEmitter,
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
+  [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
 };
 
 export const getEmitNode: Emitter = (s, option) => {

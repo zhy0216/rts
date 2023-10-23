@@ -4,7 +4,7 @@ import { getEmitNode } from "../helper";
 
 export const blockEmitter: Emitter<ts.Block> = (node, option) => ({
   emit: () =>
-    `{ ${node.statements
-      .map((s) => getEmitNode(s, option)?.emit() ?? "")
-      .join("\n")} }`,
+    `{\n ${node.statements
+      .map((s) => getEmitNode(s, option).emit())
+      .join("\n")}\n }`,
 });

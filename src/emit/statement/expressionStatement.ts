@@ -5,4 +5,9 @@ import { getEmitNode } from "../helper";
 export const expressionStatement: Emitter<ts.ExpressionStatement> = (
   node,
   option,
-) => getEmitNode(node.expression, option);
+) => {
+  const string = getEmitNode(node.expression, option).emit();
+  return {
+    emit: () => string + ";",
+  };
+};
