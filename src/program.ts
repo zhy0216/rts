@@ -39,6 +39,7 @@ export const transpile = (sourceCode: string): string => {
     envRecord: {
       identifiers: [],
     },
+    fns: [],
   });
   return programEmit?.emit() ?? "";
 };
@@ -64,6 +65,8 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
     emit: () => {
       return `
 #include <stdio.h>
+
+${option.fns.join("\n")}
     
 int main(void) {
     ${statementEmitNodes.map((s) => s.emit()).join("")}

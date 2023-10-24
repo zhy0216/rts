@@ -6,7 +6,7 @@ export const functionDeclareEmitter: Emitter<ts.FunctionDeclaration> = (
   node,
   option,
 ) => {
-  const { checker } = option;
+  const { checker, fns } = option;
   // const nodeSymbol = checker.getSymbolAtLocation(node);
   // node.name
 
@@ -24,12 +24,11 @@ export const functionDeclareEmitter: Emitter<ts.FunctionDeclaration> = (
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
   const bodyString = node.body ? getEmitNode(node.body, option).emit() : "";
-
+  fns.push(
+    `${tsType2C(returnType)} ${functionName}(${parameterString}) ${bodyString}`,
+  );
   // node.parameters
   return {
-    emit: () =>
-      `${tsType2C(
-        returnType,
-      )} ${functionName}(${parameterString}) ${bodyString}`,
+    emit: () => "",
   };
 };

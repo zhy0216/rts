@@ -10,6 +10,8 @@ import { blockEmitter } from "./statement/block";
 import { binaryExpressionEmitter } from "./expression/binaryExpression.ts";
 import { ifStatementEmitter } from "./statement/ifStatement.ts";
 import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
+import { returnStatementEmitter } from "./statement/returnStatement.ts";
+import { TypeFlags } from "typescript";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -25,6 +27,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
+  [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
 };
 
 export const getEmitNode: Emitter = (s, option) => {
@@ -41,15 +44,15 @@ export const getFunctionName = (
 ): string => {
   // TODO: consider multiple files? import, export
   const idName = node.name ? node.name.getText() + "_" : "";
-  return `__func_${idName}${node.pos}+${node.end}`;
+  return `__func_${idName}${node.pos}_${node.end}`;
 };
 
 export const tsType2C = (node: ts.Type) => {
-  if (node.isNumberLiteral()) {
+  if (node.getFlags() & TypeFlags.NumberLike) {
     return "int";
-  } else if (node.isStringLiteral()) {
+  } else if (node.getFlags() & TypeFlags.StringLike) {
     return "char *";
-  } else if (node.isNumberLiteral()) {
+  } else if (node.getFlags() & TypeFlags.BooleanLike) {
     return "int";
   }
 };
