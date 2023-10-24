@@ -1,6 +1,6 @@
 import { Emitter } from "../../type";
 import ts, { TypeFlags } from "typescript";
-import { getEmitNode } from "../helper";
+import { getEmitNode, getFunctionName } from "../helper";
 
 export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   node,
@@ -9,9 +9,7 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   const { checker } = option;
   return {
     emit: () => {
-      if (!ts.isPropertyAccessExpression(node.expression)) {
-        throw new Error(`wrong call node: ${node}`);
-      }
+      // TODO: move this to std
       if (node.expression.getText() == "console.log") {
         const argument = node.arguments[0];
         const type = checker.getTypeAtLocation(argument);
@@ -37,6 +35,23 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         }
 
         return emitStrings.join("\n");
+      }
+
+      if (ts.isIdentifier(node.expression)) {
+        const symbol = checker.getSymbolAtLocation(node.expression);
+        if (!symbol) {
+          // something wrong
+          return "";
+        }
+        const fnDeclare = symbol.getDeclarations()?.[0];
+        const fnName = fnDeclare
+          ? getFunctionName(fnDeclare as ts.FunctionDeclaration, option)
+          : "";
+        const args = node.arguments
+          .map((argNode) => getEmitNode(argNode, option).emit())
+          .join(",");
+
+        return `${fnName}(${args})`;
       }
 
       return ``;
