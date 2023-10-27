@@ -1,0 +1,13 @@
+function isEven(x:number): boolean {
+    if(x === 0) {
+        return true
+    }
+    return isOdd(x - 1)
+}
+
+function isOdd(x: number): boolean {
+    return isEven(x - 1)
+}
+
+console.log(isOdd(5))
+console.log(isEven(5))
