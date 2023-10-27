@@ -2,6 +2,9 @@ function isEven(x:number): boolean {
     if(x === 0) {
         return true
     }
+    if(x === 1) {
+        return false
+    }
     return isOdd(x - 1)
 }
 

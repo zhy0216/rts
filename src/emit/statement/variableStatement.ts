@@ -1,4 +1,4 @@
-import { EmitNode, Emitter } from "../../type";
+import { AstNode, Emitter } from "../../type";
 import ts, { TypeFlags } from "typescript";
 import { getEmitNode } from "../helper";
 
@@ -7,7 +7,7 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
   option,
 ) => {
   const { envRecord, checker } = option;
-  const initEmitters: Record<string, EmitNode | undefined> = {};
+  const initEmitters: Record<string, AstNode | undefined> = {};
   const declarationStrings: string[] = [];
   variableSTNode.declarationList.declarations.forEach((node) => {
     // TODO: object binding

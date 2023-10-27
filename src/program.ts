@@ -1,5 +1,5 @@
 import * as ts from "typescript";
-import { EmitNode, Emitter } from "./type";
+import { AstNode, Emitter } from "./type";
 import { getEmitNode } from "./emit/helper";
 // import { CallExpression } from "./expression/CallExpression";
 
@@ -45,7 +45,7 @@ export const transpile = (sourceCode: string): string => {
 };
 
 export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
-  const statementEmitNodes: EmitNode[] = [];
+  const statementEmitNodes: AstNode[] = [];
 
   const sources = tsProgram
     .getSourceFiles()
@@ -66,7 +66,9 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       return `
 #include <stdio.h>
 
-${option.fns.join("\n")}
+${option.fns.map((f) => f.declare).join("\n")}
+
+${option.fns.map((f) => f.implementation).join("\n")}
     
 int main(void) {
     ${statementEmitNodes.map((s) => s.emit()).join("")}

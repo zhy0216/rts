@@ -24,9 +24,13 @@ export const functionDeclareEmitter: Emitter<ts.FunctionDeclaration> = (
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
   const bodyString = node.body ? getEmitNode(node.body, option).emit() : "";
-  fns.push(
-    `${tsType2C(returnType)} ${functionName}(${parameterString}) ${bodyString}`,
-  );
+  const declareString = `${tsType2C(
+    returnType,
+  )} ${functionName}(${parameterString})`;
+  fns.push({
+    declare: declareString + ";",
+    implementation: `${declareString} ${bodyString};`,
+  });
   // node.parameters
   return {
     emit: () => "",
