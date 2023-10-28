@@ -27,6 +27,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
+  [ts.SyntaxKind.FunctionExpression]: functionDeclareEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
 };
 
@@ -54,5 +55,7 @@ export const tsType2C = (node: ts.Type) => {
     return "char *";
   } else if (node.getFlags() & TypeFlags.BooleanLike) {
     return "int";
+  } else if (node.getFlags() & TypeFlags.Void) {
+    return "void";
   }
 };

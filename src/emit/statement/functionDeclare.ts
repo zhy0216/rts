@@ -2,10 +2,9 @@ import { Emitter } from "../../type";
 import ts from "typescript";
 import { getEmitNode, getFunctionName, tsType2C } from "../helper.ts";
 
-export const functionDeclareEmitter: Emitter<ts.FunctionDeclaration> = (
-  node,
-  option,
-) => {
+export const functionDeclareEmitter: Emitter<
+  ts.FunctionDeclaration | ts.FunctionExpression
+> = (node, option) => {
   const { checker, fns } = option;
   // const nodeSymbol = checker.getSymbolAtLocation(node);
   // node.name
@@ -23,6 +22,7 @@ export const functionDeclareEmitter: Emitter<ts.FunctionDeclaration> = (
     })
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
+
   const bodyString = node.body ? getEmitNode(node.body, option).emit() : "";
   const declareString = `${tsType2C(
     returnType,

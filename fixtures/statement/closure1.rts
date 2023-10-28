@@ -1,15 +1,12 @@
 function ff() {
     let a = 10;
-    return function() {
+    function g() {
         console.log(a)
         a = a * 2
         console.log(a)
     }
+    g()
 }
 
-const f1 = ff()
-f1()
-f1()
-
-const f2 = ff()
-f2()
+ff()
+ff()
