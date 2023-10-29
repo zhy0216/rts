@@ -63,6 +63,9 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 
   return {
     emit: () => {
+      const statementString = statementEmitNodes
+        .map((s) => s.emit())
+        .join("\n");
       return `
 #include <stdio.h>
 
@@ -71,7 +74,7 @@ ${option.fns.map((f) => f.declare).join("\n")}
 ${option.fns.map((f) => f.implementation).join("\n\n")}
     
 int main(void) {
-    ${statementEmitNodes.map((s) => s.emit()).join("\n")}
+    ${statementString}
     return 0;
 }
 `;

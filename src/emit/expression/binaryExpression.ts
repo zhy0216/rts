@@ -1,6 +1,6 @@
 import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper.ts";
+import ts, { SyntaxKind } from "typescript";
+import { getEmitNode, isCompoundAssignment, union } from "../helper.ts";
 
 const getOperator = (operator: ts.BinaryOperatorToken): string => {
   if (operator.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
@@ -29,6 +29,12 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
       return needParent ? `(${expressionString})` : expressionString;
     },
     getVariables: () => {
+      if (
+        isCompoundAssignment(node.operatorToken.kind) ||
+        node.operatorToken.kind & SyntaxKind.EqualsToken
+      ) {
+        return union(rightEmitNode.getVariables());
+      }
       return union(leftEmitNode.getVariables(), rightEmitNode.getVariables());
     },
   };

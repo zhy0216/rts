@@ -1,11 +1,18 @@
 import { Emitter } from "../../type";
 import ts from "typescript";
-import { getEmitNode, getFunctionName, tsType2C, union } from "../helper.ts";
+import {
+  diff,
+  getEmitNode,
+  getFunctionName,
+  tsType2C,
+  union,
+} from "../helper.ts";
+import { env } from "bun";
 
 export const functionDeclareEmitter: Emitter<
   ts.FunctionDeclaration | ts.FunctionExpression
 > = (node, option) => {
-  const { checker, fns } = option;
+  const { checker, fns, envRecord } = option;
   // const nodeSymbol = checker.getSymbolAtLocation(node);
   // node.name
 
@@ -22,19 +29,38 @@ export const functionDeclareEmitter: Emitter<
     })
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
-  const bodyNode = node.body ? getEmitNode(node.body, option) : undefined;
+  const bodyNode = node.body
+    ? getEmitNode(node.body, {
+        ...option,
+        envRecord: {
+          identifiers: [],
+          parent: envRecord,
+        },
+      })
+    : undefined;
+  // console.log("####### functionName: bodyNode?.getVariables():", functionName);
+  // bodyNode
+  //   ?.getVariables()
+  //   .forEach((v) => console.log(v.getFullText(), v.getFullStart()));
+  // console.log("####### envRecord");
+  // envRecord.identifiers.forEach((v) => console.log(v.getText(), v.pos));
 
-  const bodyString = bodyNode?.emit() ?? "";
-  const declareString = `${tsType2C(
-    returnType,
-  )} ${functionName}(${parameterString})`;
-  fns.push({
-    declare: declareString + ";",
-    implementation: `${declareString} ${bodyString};`,
-  });
+  const getVariables = () => union(bodyNode?.getVariables());
   // node.parameters
   return {
-    emit: () => "",
-    getVariables: () => (bodyNode ? bodyNode.getVariables() : new Set()),
+    emit: () => {
+      const bodyString = bodyNode?.emit() ?? "";
+      const declareString = `${tsType2C(
+        returnType,
+      )} ${functionName}(${parameterString})`;
+      fns.push({
+        declare: declareString + ";",
+        implementation: `${declareString} ${bodyString};`,
+      });
+      return "";
+    },
+    getVariables,
+    getUnboundVariables: () =>
+      diff(getVariables(), new Set(envRecord.identifiers)),
   };
 };

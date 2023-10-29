@@ -70,3 +70,23 @@ export const union = <T>(...sets: (Set<T> | undefined)[]) => {
   }
   return set;
 };
+
+export const diff = <T>(setA: Set<T>, setB: Set<T>) => {
+  const set = new Set<T>();
+  setA.forEach((ele) => {
+    if (!setB.has(ele)) {
+      set.add(ele);
+    }
+  });
+
+  return set;
+};
+
+export function isCompoundAssignment(
+  kind: ts.BinaryOperator,
+): kind is ts.CompoundAssignmentOperator {
+  return (
+    kind >= ts.SyntaxKind.FirstCompoundAssignment &&
+    kind <= ts.SyntaxKind.LastCompoundAssignment
+  );
+}

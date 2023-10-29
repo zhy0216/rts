@@ -1,7 +1,7 @@
 import ts from "typescript";
 
 export interface AstNode {
-  getUnboundIdentifies?: () => ts.Identifier[];
+  getUnboundVariables?: () => Set<ts.Identifier>;
   getVariables: () => Set<ts.Identifier>;
   emit: () => string;
 }
