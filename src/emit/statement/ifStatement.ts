@@ -1,19 +1,33 @@
 import { Emitter } from "../../type";
 import ts from "typescript";
-import { getEmitNode } from "../helper.ts";
+import { getEmitNode, union } from "../helper.ts";
 
-export const ifStatementEmitter: Emitter<ts.IfStatement> = (node, option) => ({
-  emit: () => {
-    const conditionString = getEmitNode(node.expression, option).emit();
-    const conditionString2 =
-      ts.isLiteralTypeNode(node.expression) || ts.isIdentifier(node.expression)
-        ? `(${conditionString})`
-        : conditionString;
-    const thenString = getEmitNode(node.thenStatement, option).emit();
-    const elseString = node.elseStatement
-      ? "else " + getEmitNode(node.elseStatement, option).emit()
-      : "";
+export const ifStatementEmitter: Emitter<ts.IfStatement> = (node, option) => {
+  const conditionEmitNode = getEmitNode(node.expression, option);
+  const thenEmitNode = getEmitNode(node.thenStatement, option);
+  const elseEmitNode = node.elseStatement
+    ? getEmitNode(node.elseStatement, option)
+    : undefined;
 
-    return `if${conditionString2} ${thenString} ${elseString}`;
-  },
-});
+  return {
+    emit: () => {
+      const conditionString = conditionEmitNode.emit();
+      const conditionString2 =
+        ts.isLiteralTypeNode(node.expression) ||
+        ts.isIdentifier(node.expression)
+          ? `(${conditionString})`
+          : conditionString;
+      const thenString = thenEmitNode.emit();
+      const elseString = elseEmitNode ? "else " + elseEmitNode.emit() : "";
+
+      return `if${conditionString2} ${thenString} ${elseString}`;
+    },
+
+    getVariables: () =>
+      union(
+        conditionEmitNode.getVariables(),
+        thenEmitNode.getVariables(),
+        elseEmitNode?.getVariables(),
+      ),
+  };
+};

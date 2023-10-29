@@ -56,5 +56,10 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
 
       return ``;
     },
+
+    getVariables: () => {
+      // node.expression
+      return new Set();
+    },
   };
 };

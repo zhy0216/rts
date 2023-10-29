@@ -1,6 +1,6 @@
 import { Emitter } from "../../type";
 import ts from "typescript";
-import { getEmitNode, getFunctionName, tsType2C } from "../helper.ts";
+import { getEmitNode, getFunctionName, tsType2C, union } from "../helper.ts";
 
 export const functionDeclareEmitter: Emitter<
   ts.FunctionDeclaration | ts.FunctionExpression
@@ -22,8 +22,9 @@ export const functionDeclareEmitter: Emitter<
     })
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
+  const bodyNode = node.body ? getEmitNode(node.body, option) : undefined;
 
-  const bodyString = node.body ? getEmitNode(node.body, option).emit() : "";
+  const bodyString = bodyNode?.emit() ?? "";
   const declareString = `${tsType2C(
     returnType,
   )} ${functionName}(${parameterString})`;
@@ -34,5 +35,6 @@ export const functionDeclareEmitter: Emitter<
   // node.parameters
   return {
     emit: () => "",
+    getVariables: () => (bodyNode ? bodyNode.getVariables() : new Set()),
   };
 };

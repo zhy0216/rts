@@ -15,4 +15,5 @@ export const literalEmitter: Emitter<
 
     return node.getText();
   },
+  getVariables: () => new Set(),
 });

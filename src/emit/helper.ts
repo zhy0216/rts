@@ -59,3 +59,14 @@ export const tsType2C = (node: ts.Type) => {
     return "void";
   }
 };
+
+export const union = <T>(...sets: (Set<T> | undefined)[]) => {
+  const set = new Set<T>();
+  for (const tSet of sets) {
+    tSet &&
+      tSet.forEach((t) => {
+        set.add(t);
+      });
+  }
+  return set;
+};

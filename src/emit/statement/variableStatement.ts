@@ -1,6 +1,6 @@
 import { AstNode, Emitter } from "../../type";
 import ts, { TypeFlags } from "typescript";
-import { getEmitNode } from "../helper";
+import { getEmitNode, union } from "../helper";
 
 export const variableStatement: Emitter<ts.VariableStatement> = (
   variableSTNode,
@@ -29,5 +29,7 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
 
   return {
     emit: () => declarationStrings.join(""),
+    getVariables: () =>
+      union(...Object.values(initEmitters).map((en) => en?.getVariables())),
   };
 };

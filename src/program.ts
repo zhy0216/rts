@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { AstNode, Emitter } from "./type";
-import { getEmitNode } from "./emit/helper";
+import { getEmitNode, union } from "./emit/helper";
 // import { CallExpression } from "./expression/CallExpression";
 
 export const transpile = (sourceCode: string): string => {
@@ -76,5 +76,8 @@ int main(void) {
 }
 `;
     },
+
+    getVariables: () =>
+      union(...statementEmitNodes.map((en) => en.getVariables())),
   };
 };

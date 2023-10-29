@@ -3,4 +3,5 @@ import ts from "typescript";
 
 export const emptyStatementEmitter: Emitter<ts.EmptyStatement> = () => ({
   emit: () => "",
+  getVariables: () => new Set(),
 });

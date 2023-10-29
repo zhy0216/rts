@@ -1,6 +1,6 @@
 import { Emitter } from "../../type";
 import ts from "typescript";
-import { getEmitNode } from "../helper.ts";
+import { getEmitNode, union } from "../helper.ts";
 
 const getOperator = (operator: ts.BinaryOperatorToken): string => {
   if (operator.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
@@ -13,11 +13,19 @@ const getOperator = (operator: ts.BinaryOperatorToken): string => {
 export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
   node,
   option,
-) => ({
-  emit: () => {
-    const left = getEmitNode(node.left, option).emit();
-    const right = getEmitNode(node.right, option).emit();
+) => {
+  const leftEmitNode = getEmitNode(node.left, option);
+  const rightEmitNode = getEmitNode(node.right, option);
 
-    return `(${left} ${getOperator(node.operatorToken)} ${right})`;
-  },
-});
+  return {
+    emit: () => {
+      const left = leftEmitNode.emit();
+      const right = rightEmitNode.emit();
+
+      return `(${left} ${getOperator(node.operatorToken)} ${right})`;
+    },
+    getVariables: () => {
+      return union(leftEmitNode.getVariables(), rightEmitNode.getVariables());
+    },
+  };
+};
