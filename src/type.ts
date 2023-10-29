@@ -1,8 +1,8 @@
 import ts from "typescript";
 
 export interface AstNode {
-  getUnboundVariables?: () => Set<ts.Identifier>;
-  getVariables: () => Set<ts.Identifier>;
+  getUnboundVars?: () => Set<ts.Identifier>;
+  getVars: () => Set<ts.Identifier>;
   emit: () => string;
 }
 
@@ -22,6 +22,8 @@ export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;
 
 // https://tc39.es/ecma262/multipage/executable-code-and-execution-contexts.html#sec-environment-records
 export interface EnvRecord {
+  name: string;
   parent?: EnvRecord;
+  closureVars?: Set<ts.Identifier>;
   identifiers: ts.Identifier[];
 }

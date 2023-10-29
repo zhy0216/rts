@@ -29,7 +29,7 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
 
   return {
     emit: () => declarationStrings.join(""),
-    getVariables: () =>
-      union(...Object.values(initEmitters).map((en) => en?.getVariables())),
+    getVars: () =>
+      union(...Object.values(initEmitters).map((en) => en?.getVars())),
   };
 };

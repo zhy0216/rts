@@ -7,6 +7,6 @@ export const blockEmitter: Emitter<ts.Block> = (node, option) => {
   return {
     emit: () => `{\n ${emitNodes.map((en) => en.emit()).join("\n")}\n}`,
 
-    getVariables: () => union(...emitNodes.map((en) => en.getVariables())),
+    getVars: () => union(...emitNodes.map((en) => en.getVars())),
   };
 };

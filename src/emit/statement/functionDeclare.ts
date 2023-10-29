@@ -33,6 +33,7 @@ export const functionDeclareEmitter: Emitter<
     ? getEmitNode(node.body, {
         ...option,
         envRecord: {
+          name: functionName,
           identifiers: [],
           parent: envRecord,
         },
@@ -45,7 +46,10 @@ export const functionDeclareEmitter: Emitter<
   // console.log("####### envRecord");
   // envRecord.identifiers.forEach((v) => console.log(v.getText(), v.pos));
 
-  const getVariables = () => union(bodyNode?.getVariables());
+  const getVars = () => union(bodyNode?.getVars());
+  const getUnboundVars = () => diff(getVars(), new Set(envRecord.identifiers));
+
+  const hasUnboundVars = getUnboundVars().size > 0;
   // node.parameters
   return {
     emit: () => {
@@ -53,14 +57,15 @@ export const functionDeclareEmitter: Emitter<
       const declareString = `${tsType2C(
         returnType,
       )} ${functionName}(${parameterString})`;
+
       fns.push({
         declare: declareString + ";",
         implementation: `${declareString} ${bodyString};`,
       });
+
       return "";
     },
-    getVariables,
-    getUnboundVariables: () =>
-      diff(getVariables(), new Set(envRecord.identifiers)),
+    getVars,
+    getUnboundVars,
   };
 };

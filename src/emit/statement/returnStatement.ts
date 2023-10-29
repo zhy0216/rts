@@ -12,6 +12,6 @@ export const returnStatementEmitter: Emitter<ts.ReturnStatement> = (
   return {
     emit: () =>
       "return " + (returnEmitNode ? returnEmitNode.emit() : "null") + ";",
-    getVariables: () => union(returnEmitNode?.getVariables()),
+    getVars: () => union(returnEmitNode?.getVars()),
   };
 };

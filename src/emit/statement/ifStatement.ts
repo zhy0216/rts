@@ -18,11 +18,11 @@ export const ifStatementEmitter: Emitter<ts.IfStatement> = (node, option) => {
       return `if(${conditionString}) ${thenString} ${elseString}`;
     },
 
-    getVariables: () =>
+    getVars: () =>
       union(
-        conditionEmitNode.getVariables(),
-        thenEmitNode.getVariables(),
-        elseEmitNode?.getVariables(),
+        conditionEmitNode.getVars(),
+        thenEmitNode.getVars(),
+        elseEmitNode?.getVars(),
       ),
   };
 };

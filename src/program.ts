@@ -37,6 +37,7 @@ export const transpile = (sourceCode: string): string => {
   const programEmit = programEmitter(tsProgram, {
     checker,
     envRecord: {
+      name: "global",
       identifiers: [],
     },
     fns: [],
@@ -80,7 +81,6 @@ int main(void) {
 `;
     },
 
-    getVariables: () =>
-      union(...statementEmitNodes.map((en) => en.getVariables())),
+    getVars: () => union(...statementEmitNodes.map((en) => en.getVars())),
   };
 };
