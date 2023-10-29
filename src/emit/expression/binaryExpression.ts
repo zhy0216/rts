@@ -21,8 +21,12 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
     emit: () => {
       const left = leftEmitNode.emit();
       const right = rightEmitNode.emit();
+      const needParent = ts.isBinaryExpression(node.parent);
+      const expressionString = `${left} ${getOperator(
+        node.operatorToken,
+      )} ${right}`;
 
-      return `(${left} ${getOperator(node.operatorToken)} ${right})`;
+      return needParent ? `(${expressionString})` : expressionString;
     },
     getVariables: () => {
       return union(leftEmitNode.getVariables(), rightEmitNode.getVariables());

@@ -12,15 +12,10 @@ export const ifStatementEmitter: Emitter<ts.IfStatement> = (node, option) => {
   return {
     emit: () => {
       const conditionString = conditionEmitNode.emit();
-      const conditionString2 =
-        ts.isLiteralTypeNode(node.expression) ||
-        ts.isIdentifier(node.expression)
-          ? `(${conditionString})`
-          : conditionString;
       const thenString = thenEmitNode.emit();
       const elseString = elseEmitNode ? "else " + elseEmitNode.emit() : "";
 
-      return `if${conditionString2} ${thenString} ${elseString}`;
+      return `if(${conditionString}) ${thenString} ${elseString}`;
     },
 
     getVariables: () =>
