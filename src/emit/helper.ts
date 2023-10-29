@@ -1,4 +1,4 @@
-import { Emitter, EmitterOption } from "../type";
+import { Emitter, EmitterOption, EnvRecord } from "../type";
 import * as ts from "typescript";
 import { emptyStatementEmitter } from "./statement/emptyStatement";
 import { callExpressionEmitter } from "./expression/callExpression";
@@ -82,6 +82,7 @@ export const diff = <T>(setA: Set<T>, setB: Set<T>) => {
   return set;
 };
 
+// from tsc
 export function isCompoundAssignment(
   kind: ts.BinaryOperator,
 ): kind is ts.CompoundAssignmentOperator {
@@ -90,3 +91,15 @@ export function isCompoundAssignment(
     kind <= ts.SyntaxKind.LastCompoundAssignment
   );
 }
+
+export const connectChildEnvRecord = (
+  envRecord: EnvRecord,
+  childEnv: EnvRecord,
+): EnvRecord => {
+  envRecord.children.push(childEnv);
+  return childEnv;
+};
+
+export const declareClosure = (rootEnvRecord: EnvRecord): string => {
+  return "";
+};

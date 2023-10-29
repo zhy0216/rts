@@ -22,8 +22,10 @@ export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;
 
 // https://tc39.es/ecma262/multipage/executable-code-and-execution-contexts.html#sec-environment-records
 export interface EnvRecord {
+  closureName?: string;
   name: string;
   parent?: EnvRecord;
-  closureVars?: Set<ts.Identifier>;
-  identifiers: ts.Identifier[];
+  children: EnvRecord[];
+  getClosureVars?: () => Set<ts.Identifier>;
+  vars: Set<ts.Identifier>;
 }

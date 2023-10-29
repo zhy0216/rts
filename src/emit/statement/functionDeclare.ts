@@ -1,6 +1,7 @@
 import { Emitter } from "../../type";
 import ts from "typescript";
 import {
+  connectChildEnvRecord,
   diff,
   getEmitNode,
   getFunctionName,
@@ -29,14 +30,19 @@ export const functionDeclareEmitter: Emitter<
     })
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
+  const getVars = () => union(bodyNode?.getVars());
+  const getUnboundVars = () => diff(getVars(), new Set(envRecord.vars));
   const bodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
-        envRecord: {
+        envRecord: connectChildEnvRecord(envRecord, {
+          closureName: envRecord.closureName ?? functionName + "_closure",
+          children: [],
           name: functionName,
-          identifiers: [],
+          vars: new Set(),
           parent: envRecord,
-        },
+          getClosureVars: getUnboundVars,
+        }),
       })
     : undefined;
   // console.log("####### functionName: bodyNode?.getVariables():", functionName);
@@ -46,10 +52,8 @@ export const functionDeclareEmitter: Emitter<
   // console.log("####### envRecord");
   // envRecord.identifiers.forEach((v) => console.log(v.getText(), v.pos));
 
-  const getVars = () => union(bodyNode?.getVars());
-  const getUnboundVars = () => diff(getVars(), new Set(envRecord.identifiers));
+  // const hasUnboundVars = getUnboundVars().size > 0;
 
-  const hasUnboundVars = getUnboundVars().size > 0;
   // node.parameters
   return {
     emit: () => {

@@ -14,7 +14,7 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
     if (node.initializer) {
       initEmitters[node.name.getText()] = getEmitNode(node.initializer, option);
     }
-    envRecord.identifiers.push(node.name as ts.Identifier);
+    envRecord.vars.add(node.name as ts.Identifier);
     const type = checker.getTypeAtLocation(node);
     if (type.getFlags() & TypeFlags.Number) {
       declarationStrings.push(`int ${node.name.getText()}`);

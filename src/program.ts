@@ -37,8 +37,9 @@ export const transpile = (sourceCode: string): string => {
   const programEmit = programEmitter(tsProgram, {
     checker,
     envRecord: {
+      children: [],
       name: "global",
-      identifiers: [],
+      vars: new Set(),
     },
     fns: [],
   });
