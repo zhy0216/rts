@@ -68,10 +68,10 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 
 ${option.fns.map((f) => f.declare).join("\n")}
 
-${option.fns.map((f) => f.implementation).join("\n")}
+${option.fns.map((f) => f.implementation).join("\n\n")}
     
 int main(void) {
-    ${statementEmitNodes.map((s) => s.emit()).join("")}
+    ${statementEmitNodes.map((s) => s.emit()).join("\n")}
     return 0;
 }
 `;

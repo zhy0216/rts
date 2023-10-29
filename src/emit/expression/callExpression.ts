@@ -15,13 +15,13 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         const type = checker.getTypeAtLocation(argument);
         const emitStrings: string[] = [];
         if (type.isStringLiteral()) {
-          emitStrings.push(`printf("\\"%s\\"\\n", ${argument.getText()});`);
+          emitStrings.push(`printf("\\"%s\\"\\n", ${argument.getText()})`);
         }
 
         if (type.getFlags() & TypeFlags.NumberLike) {
           // TODO: consider number is int first
           emitStrings.push(
-            `printf("%d\\n", ${getEmitNode(argument, option).emit()});`,
+            `printf("%d\\n", ${getEmitNode(argument, option).emit()})`,
           );
         }
 
@@ -30,11 +30,11 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
             `printf("%s\\n", ${getEmitNode(
               argument,
               option,
-            ).emit()}?"true": "false");`,
+            ).emit()}?"true": "false")`,
           );
         }
 
-        return emitStrings.join("\n");
+        return emitStrings.join(";\n");
       }
 
       if (ts.isIdentifier(node.expression)) {
