@@ -1,12 +1,13 @@
 import { Emitter } from "../../type";
 import ts, { TypeFlags } from "typescript";
-import { getEmitNode, getFunctionName } from "../helper";
+import { getEmitNode, getFunctionName, union } from "../helper";
 
 export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   node,
   option,
 ) => {
   const { checker } = option;
+  const argsEmitNode = getEmitNode(node.arguments[0], option);
   return {
     emit: () => {
       // TODO: move this to std
@@ -57,9 +58,8 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
       return ``;
     },
 
-    getVars: () => {
-      // node.expression
-      return new Set();
+    getAllVars: () => {
+      return union(argsEmitNode.getAllVars());
     },
   };
 };

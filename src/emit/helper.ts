@@ -101,11 +101,12 @@ export const connectChildEnvRecord = (
   return childEnv;
 };
 
-export const makeDeclareClosure = (rootEnvRecord: EnvRecord): string => {
+export const makeDeclareClosure = (option: EmitterOption): string => {
+  const rootEnvRecord = option.envRecord;
   const declareString = [];
   for (const envRecord of rootEnvRecord.children) {
     if (allClosureVars(envRecord).size > 0) {
-      declareString.push(structClosure(envRecord));
+      declareString.push(structClosure(envRecord, option));
     }
   }
 
@@ -113,16 +114,37 @@ export const makeDeclareClosure = (rootEnvRecord: EnvRecord): string => {
 };
 
 const allClosureVars = (functionEnvRecord: EnvRecord): Set<ts.Identifier> => {
-  const closureVars = functionEnvRecord?.getClosureVars?.();
+  // console.log("########## functionEnvRecord:", functionEnvRecord);
+  const closureVars = functionEnvRecord?.getUnboundVars?.();
+  // console.log("########## closureVars:", closureVars?.size);
+
   return union(closureVars, ...functionEnvRecord.children.map(allClosureVars));
 };
 
-const structClosure = (functionEnvRecord: EnvRecord): string => {
+const structClosure = (
+  functionEnvRecord: EnvRecord,
+  { checker }: EmitterOption,
+): string => {
   const closureVars = allClosureVars(functionEnvRecord);
+  const declareVarStrings: string[] = [];
   closureVars.forEach((tempVar) => {
-    if (functionEnvRecord.boundVars.has(tempVar)) {
+    console.log(
+      "##### functionEnvRecord.children.length:",
+      functionEnvRecord.children.length,
+    );
+    console.log("##### functionEnvRecord.children:");
+    allClosureVars(functionEnvRecord.children[0]).forEach((n) =>
+      console.log(n.getFullStart()),
+    );
+
+    if (functionEnvRecord.getBoundVars().has(tempVar)) {
+      const typeNode = checker.getTypeAtLocation(tempVar);
+      declareVarStrings.push(`${tsType2C(typeNode)} ${tempVar.getText()};`);
     }
   });
+  const declareString = declareVarStrings.join("\n");
+
+  return `struct ${functionEnvRecord.closureName} {${declareString}}`;
 };
 
 /** end EnvRecord */

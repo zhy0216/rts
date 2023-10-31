@@ -9,6 +9,6 @@ export const expressionStatement: Emitter<ts.ExpressionStatement> = (
   const emitNode = getEmitNode(node.expression, option);
   return {
     emit: () => emitNode.emit() + ";",
-    getVars: () => emitNode.getVars(),
+    getAllVars: () => emitNode.getAllVars(),
   };
 };

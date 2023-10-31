@@ -28,14 +28,14 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
 
       return needParent ? `(${expressionString})` : expressionString;
     },
-    getVars: () => {
+    getAllVars: () => {
       if (
         isCompoundAssignment(node.operatorToken.kind) ||
         node.operatorToken.kind & SyntaxKind.EqualsToken
       ) {
-        return union(rightEmitNode.getVars());
+        return union(rightEmitNode.getAllVars());
       }
-      return union(leftEmitNode.getVars(), rightEmitNode.getVars());
+      return union(leftEmitNode.getAllVars(), rightEmitNode.getAllVars());
     },
   };
 };

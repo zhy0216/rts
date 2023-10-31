@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import { AstNode, Emitter } from "./type";
-import { getEmitNode, union } from "./emit/helper";
+import { getEmitNode, makeDeclareClosure, union } from "./emit/helper";
 // import { CallExpression } from "./expression/CallExpression";
 
 export const transpile = (sourceCode: string): string => {
@@ -39,7 +39,7 @@ export const transpile = (sourceCode: string): string => {
     envRecord: {
       children: [],
       name: "global",
-      boundVars: new Set(),
+      getBoundVars: () => new Set(),
     },
     fns: [],
   });
@@ -71,6 +71,8 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       return `
 #include <stdio.h>
 
+${makeDeclareClosure(option)}
+
 ${option.fns.map((f) => f.declare).join("\n")}
 
 ${option.fns.map((f) => f.implementation).join("\n\n")}
@@ -82,6 +84,6 @@ int main(void) {
 `;
     },
 
-    getVars: () => union(...statementEmitNodes.map((en) => en.getVars())),
+    getAllVars: () => union(...statementEmitNodes.map((en) => en.getAllVars())),
   };
 };

@@ -1,8 +1,7 @@
 import ts from "typescript";
 
 export interface AstNode {
-  getUnboundVars?: () => Set<ts.Identifier>;
-  getVars: () => Set<ts.Identifier>;
+  getAllVars: () => Set<ts.Identifier>;
   emit: () => string;
 }
 
@@ -26,6 +25,6 @@ export interface EnvRecord {
   name: string;
   parent?: EnvRecord;
   children: EnvRecord[];
-  getClosureVars?: () => Set<ts.Identifier>;
-  boundVars: Set<ts.Identifier>;
+  getUnboundVars?: () => Set<ts.Identifier>;
+  getBoundVars: () => Set<ts.Identifier>;
 }

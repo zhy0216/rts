@@ -30,8 +30,9 @@ export const functionDeclareEmitter: Emitter<
     })
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
-  const getVars = () => union(bodyNode?.getVars());
-  const getUnboundVars = () => diff(getVars(), new Set(envRecord.boundVars));
+  const getAllVars = () => union(bodyNode?.getAllVars());
+  // const getUnboundVars = () =>
+  //   diff(getAllVars(), new Set(envRecord.getBoundVars()));
   const bodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
@@ -39,20 +40,12 @@ export const functionDeclareEmitter: Emitter<
           closureName: envRecord.closureName ?? functionName + "_closure",
           children: [],
           name: functionName,
-          boundVars: new Set(),
+          getBoundVars: () => new Set(),
           parent: envRecord,
-          getClosureVars: getUnboundVars,
+          getUnboundVars: () => new Set(),
         }),
       })
     : undefined;
-  // console.log("####### functionName: bodyNode?.getVariables():", functionName);
-  // bodyNode
-  //   ?.getVariables()
-  //   .forEach((v) => console.log(v.getFullText(), v.getFullStart()));
-  // console.log("####### envRecord");
-  // envRecord.identifiers.forEach((v) => console.log(v.getText(), v.pos));
-
-  // const hasUnboundVars = getUnboundVars().size > 0;
 
   // node.parameters
   return {
@@ -69,7 +62,6 @@ export const functionDeclareEmitter: Emitter<
 
       return "";
     },
-    getVars,
-    getUnboundVars,
+    getAllVars,
   };
 };

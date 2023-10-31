@@ -9,12 +9,15 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
   const { envRecord, checker } = option;
   const initEmitters: Record<string, AstNode | undefined> = {};
   const declarationStrings: string[] = [];
+  const s = new Set<ts.Identifier>();
   variableSTNode.declarationList.declarations.forEach((node) => {
     // TODO: object binding
     if (node.initializer) {
       initEmitters[node.name.getText()] = getEmitNode(node.initializer, option);
     }
-    envRecord.boundVars.add(node.name as ts.Identifier);
+    if (ts.isIdentifier(node.name)) {
+      s.add(node.name);
+    }
     const type = checker.getTypeAtLocation(node);
     if (type.getFlags() & TypeFlags.Number) {
       declarationStrings.push(`int ${node.name.getText()}`);
@@ -29,7 +32,7 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
 
   return {
     emit: () => declarationStrings.join(""),
-    getVars: () =>
-      union(...Object.values(initEmitters).map((en) => en?.getVars())),
+    getAllVars: () =>
+      union(s, ...Object.values(initEmitters).map((en) => en?.getAllVars())),
   };
 };
