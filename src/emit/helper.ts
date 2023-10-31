@@ -92,6 +92,7 @@ export function isCompoundAssignment(
   );
 }
 
+/** start EnvRecord */
 export const connectChildEnvRecord = (
   envRecord: EnvRecord,
   childEnv: EnvRecord,
@@ -100,6 +101,28 @@ export const connectChildEnvRecord = (
   return childEnv;
 };
 
-export const declareClosure = (rootEnvRecord: EnvRecord): string => {
-  return "";
+export const makeDeclareClosure = (rootEnvRecord: EnvRecord): string => {
+  const declareString = [];
+  for (const envRecord of rootEnvRecord.children) {
+    if (allClosureVars(envRecord).size > 0) {
+      declareString.push(structClosure(envRecord));
+    }
+  }
+
+  return declareString.join("\n");
 };
+
+const allClosureVars = (functionEnvRecord: EnvRecord): Set<ts.Identifier> => {
+  const closureVars = functionEnvRecord?.getClosureVars?.();
+  return union(closureVars, ...functionEnvRecord.children.map(allClosureVars));
+};
+
+const structClosure = (functionEnvRecord: EnvRecord): string => {
+  const closureVars = allClosureVars(functionEnvRecord);
+  closureVars.forEach((tempVar) => {
+    if (functionEnvRecord.boundVars.has(tempVar)) {
+    }
+  });
+};
+
+/** end EnvRecord */

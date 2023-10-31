@@ -31,7 +31,7 @@ export const functionDeclareEmitter: Emitter<
     .join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
   const getVars = () => union(bodyNode?.getVars());
-  const getUnboundVars = () => diff(getVars(), new Set(envRecord.vars));
+  const getUnboundVars = () => diff(getVars(), new Set(envRecord.boundVars));
   const bodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
@@ -39,7 +39,7 @@ export const functionDeclareEmitter: Emitter<
           closureName: envRecord.closureName ?? functionName + "_closure",
           children: [],
           name: functionName,
-          vars: new Set(),
+          boundVars: new Set(),
           parent: envRecord,
           getClosureVars: getUnboundVars,
         }),

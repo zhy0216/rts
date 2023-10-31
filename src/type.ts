@@ -27,5 +27,5 @@ export interface EnvRecord {
   parent?: EnvRecord;
   children: EnvRecord[];
   getClosureVars?: () => Set<ts.Identifier>;
-  vars: Set<ts.Identifier>;
+  boundVars: Set<ts.Identifier>;
 }

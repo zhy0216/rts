@@ -39,7 +39,7 @@ export const transpile = (sourceCode: string): string => {
     envRecord: {
       children: [],
       name: "global",
-      vars: new Set(),
+      boundVars: new Set(),
     },
     fns: [],
   });
