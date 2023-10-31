@@ -25,6 +25,6 @@ export interface EnvRecord {
   name: string;
   parent?: EnvRecord;
   children: EnvRecord[];
-  getUnboundVars?: () => Set<ts.Identifier>;
-  getBoundVars: () => Set<ts.Identifier>;
+  allVars: Set<ts.Identifier>;
+  boundVars: Set<ts.Identifier>;
 }

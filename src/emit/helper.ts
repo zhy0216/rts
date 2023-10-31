@@ -11,7 +11,7 @@ import { binaryExpressionEmitter } from "./expression/binaryExpression.ts";
 import { ifStatementEmitter } from "./statement/ifStatement.ts";
 import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
 import { returnStatementEmitter } from "./statement/returnStatement.ts";
-import { TypeFlags } from "typescript";
+import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -115,8 +115,10 @@ export const makeDeclareClosure = (option: EmitterOption): string => {
 
 const allClosureVars = (functionEnvRecord: EnvRecord): Set<ts.Identifier> => {
   // console.log("########## functionEnvRecord:", functionEnvRecord);
-  const closureVars = functionEnvRecord?.getUnboundVars?.();
-  // console.log("########## closureVars:", closureVars?.size);
+  const closureVars = diff(
+    functionEnvRecord.allVars,
+    functionEnvRecord.boundVars,
+  );
 
   return union(closureVars, ...functionEnvRecord.children.map(allClosureVars));
 };
@@ -126,25 +128,27 @@ const structClosure = (
   { checker }: EmitterOption,
 ): string => {
   const closureVars = allClosureVars(functionEnvRecord);
-  const declareVarStrings: string[] = [];
+  const declareVarStrings: Record<string, string> = {};
   closureVars.forEach((tempVar) => {
-    console.log(
-      "##### functionEnvRecord.children.length:",
-      functionEnvRecord.children.length,
-    );
-    console.log("##### functionEnvRecord.children:");
-    allClosureVars(functionEnvRecord.children[0]).forEach((n) =>
-      console.log(n.getFullStart()),
-    );
+    const symbol = checker.getSymbolAtLocation(tempVar);
+    if (!symbol) {
+      return;
+    }
+    const declareVar = symbol.getDeclarations()?.[0];
 
-    if (functionEnvRecord.getBoundVars().has(tempVar)) {
-      const typeNode = checker.getTypeAtLocation(tempVar);
-      declareVarStrings.push(`${tsType2C(typeNode)} ${tempVar.getText()};`);
+    if (
+      declareVar &&
+      ts.isVariableDeclaration(declareVar) &&
+      functionEnvRecord.boundVars.has(declareVar.name as ts.Identifier)
+    ) {
+      const varName = declareVar.name.getText();
+      const typeNode = checker.getTypeAtLocation(declareVar);
+      declareVarStrings[varName] = `${tsType2C(typeNode)} ${varName};`;
     }
   });
-  const declareString = declareVarStrings.join("\n");
+  const declareString = Object.values(declareVarStrings).join("\n");
 
-  return `struct ${functionEnvRecord.closureName} {${declareString}}`;
+  return `struct ${functionEnvRecord.closureName} {\n${declareString}\n};`;
 };
 
 /** end EnvRecord */

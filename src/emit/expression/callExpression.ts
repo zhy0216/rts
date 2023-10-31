@@ -7,7 +7,9 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   option,
 ) => {
   const { checker } = option;
-  const argsEmitNode = getEmitNode(node.arguments[0], option);
+  const argsEmitNodes = node.arguments.map((tNode) =>
+    getEmitNode(tNode, option),
+  );
   return {
     emit: () => {
       // TODO: move this to std
@@ -59,7 +61,7 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
     },
 
     getAllVars: () => {
-      return union(argsEmitNode.getAllVars());
+      return union(...argsEmitNodes.map((node) => node.getAllVars()));
     },
   };
 };

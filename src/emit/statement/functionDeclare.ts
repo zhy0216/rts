@@ -33,19 +33,30 @@ export const functionDeclareEmitter: Emitter<
   const getAllVars = () => union(bodyNode?.getAllVars());
   // const getUnboundVars = () =>
   //   diff(getAllVars(), new Set(envRecord.getBoundVars()));
+  const functionEnvRecord = connectChildEnvRecord(envRecord, {
+    closureName: envRecord.closureName ?? functionName + "_closure",
+    children: [],
+    name: functionName,
+    boundVars: new Set(
+      node.body?.statements
+        .filter(ts.isVariableStatement)
+        .flatMap((n) =>
+          n.declarationList.declarations
+            .map((d) => d.name)
+            .filter(ts.isIdentifier),
+        ),
+    ),
+    parent: envRecord,
+    allVars: new Set(),
+  });
   const bodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
-        envRecord: connectChildEnvRecord(envRecord, {
-          closureName: envRecord.closureName ?? functionName + "_closure",
-          children: [],
-          name: functionName,
-          getBoundVars: () => new Set(),
-          parent: envRecord,
-          getUnboundVars: () => new Set(),
-        }),
+        envRecord: functionEnvRecord,
       })
     : undefined;
+
+  functionEnvRecord.allVars = getAllVars();
 
   // node.parameters
   return {
