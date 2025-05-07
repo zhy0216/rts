@@ -1,0 +1,15 @@
+let x = 10
+let y = 5
+let result = x > y ? 1 : 0
+let result2 = 0
+
+if (x < y) {
+  result2 = 2
+} else if (x === 10) {
+  result2 = 3
+} else {
+  result2 = 4
+}
+
+console.log(result)
+console.log(result2)

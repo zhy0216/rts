@@ -15,6 +15,7 @@ import { whileStatementEmitter } from "./statement/whileStatement.ts";
 import { forStatementEmitter } from "./statement/forStatement.ts";
 import { continueStatementEmitter } from "./statement/continueStatement.ts";
 import { breakStatementEmitter } from "./statement/breakStatement.ts";
+import { conditionalExpressionEmitter } from "./expression/conditionalExpression.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
@@ -30,6 +31,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.Identifier]: identifierEmitter,
   [ts.SyntaxKind.Block]: blockEmitter,
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
+  [ts.SyntaxKind.ConditionalExpression]: conditionalExpressionEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
   [ts.SyntaxKind.ForStatement]: forStatementEmitter,
