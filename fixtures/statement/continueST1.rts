@@ -1,0 +1,11 @@
+let sum = 0
+
+// Skip adding even numbers
+for (let i = 1; i <= 10; i = i + 1) {
+  if (i % 2 === 0) {
+    continue
+  }
+  sum = sum + i
+}
+
+console.log(sum)
