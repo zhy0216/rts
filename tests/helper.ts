@@ -35,8 +35,13 @@ export const testFixtures = (fixturePath: string) => {
           throw new Error(`C file not created at ${cFilePath}`);
         }
         
+        // Set a timeout for the compilation process to prevent hanging
+        const compileOptions = {
+          timeout: 3000, // 3 seconds timeout
+        };
+        
         // Compile with error handling
-        const proc = Bun.spawn(["cc", cFilePath, "-o", exePath]);
+        const proc = Bun.spawn(["cc", cFilePath, "-o", exePath], compileOptions);
         const compileStatus = await proc.exited;
         
         if (compileStatus !== 0) {
@@ -52,8 +57,12 @@ export const testFixtures = (fixturePath: string) => {
         // Make the executable file executable
         fs.chmodSync(exePath, 0o755);
         
-        // Run the executable
-        const r = Bun.spawn([exePath]);
+        // Run the executable with a timeout
+        const runOptions = {
+          timeout: 3000, // 3 seconds timeout
+        };
+        
+        const r = Bun.spawn([exePath], runOptions);
         const output = await new Response(r.stdout).text();
         const exitCode = await r.exited;
         
