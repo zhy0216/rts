@@ -12,6 +12,7 @@ import { ifStatementEmitter } from "./statement/ifStatement.ts";
 import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
 import { returnStatementEmitter } from "./statement/returnStatement.ts";
 import { whileStatementEmitter } from "./statement/whileStatement.ts";
+import { forStatementEmitter } from "./statement/forStatement.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
@@ -28,6 +29,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
+  [ts.SyntaxKind.ForStatement]: forStatementEmitter,
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
   [ts.SyntaxKind.FunctionExpression]: functionDeclareEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,

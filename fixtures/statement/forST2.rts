@@ -1,0 +1,8 @@
+let sum = 0
+
+// Count down from 10 to 0 by 2s
+for (let i = 10; i >= 0; i = i - 2) {
+  sum = sum + i
+}
+
+console.log(sum)
