@@ -15,10 +15,12 @@ import { whileStatementEmitter } from "./statement/whileStatement.ts";
 import { forStatementEmitter } from "./statement/forStatement.ts";
 import { continueStatementEmitter } from "./statement/continueStatement.ts";
 import { breakStatementEmitter } from "./statement/breakStatement.ts";
+import { switchStatementEmitter } from "./statement/switchStatement.ts";
 import { conditionalExpressionEmitter } from "./expression/conditionalExpression.ts";
 import { unaryExpressionEmitter } from "./expression/unaryExpression.ts";
 import { functionExpressionEmitter } from "./expression/functionExpression.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
+
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -41,6 +43,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.ForStatement]: forStatementEmitter,
   [ts.SyntaxKind.ContinueStatement]: continueStatementEmitter,
   [ts.SyntaxKind.BreakStatement]: breakStatementEmitter,
+  [ts.SyntaxKind.SwitchStatement]: switchStatementEmitter,
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
   [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
