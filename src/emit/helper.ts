@@ -36,7 +36,6 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.ConditionalExpression]: conditionalExpressionEmitter,
   [ts.SyntaxKind.PrefixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.PostfixUnaryExpression]: unaryExpressionEmitter,
-  [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
   [ts.SyntaxKind.ForStatement]: forStatementEmitter,
