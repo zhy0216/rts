@@ -1,6 +1,6 @@
 import { AstNode, Emitter } from "../../type";
-import ts, { TypeFlags } from "typescript";
-import { getEmitNode, union } from "../helper";
+import ts, { TypeFlags, SyntaxKind } from "typescript";
+import { getEmitNode, tsType2C, union } from "../helper";
 
 export const variableStatement: Emitter<ts.VariableStatement> = (
   variableSTNode,
@@ -24,11 +24,20 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
       const varName = node.name.getText();
       
       // Get initializer if any
-      const initString = initEmitters[varName]?.emit();
+      const initializer = initEmitters[varName];
+      const initString = initializer?.emit();
+      
+      // Handle function expressions specially
+      const isFunctionExpr = node.initializer && node.initializer.kind === SyntaxKind.FunctionExpression;
       
       // Only emit the initialization as assignment, since declaration is done globally
-      if (initString) {
-        declarationStrings.push(`${varName} = ${initString};\n`);
+      if (initString && initializer) {
+        if (isFunctionExpr && typeof (initializer as any).getFunctionType === 'function') {
+          // For function expressions, just assign the function name directly
+          declarationStrings.push(`${varName} = &${initString};\n`);
+        } else {
+          declarationStrings.push(`${varName} = ${initString};\n`);
+        }
       }
     }
   });

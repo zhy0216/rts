@@ -1,0 +1,15 @@
+// Basic function expression test
+
+// Function that prints a number
+function print(num: number): void {
+  console.log(num)
+}
+
+// Function expression in a variable
+let add = function(a: number, b: number): number {
+  return a + b
+}
+
+// Use the function expression
+let result = add(3, 5)
+print(result)

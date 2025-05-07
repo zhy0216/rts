@@ -46,7 +46,29 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
           // something wrong
           return "";
         }
+        
         const fnDeclare = symbol.getDeclarations()?.[0];
+        
+        // Check if this is a variable declaration that holds a function expression
+        const isFunctionVar = fnDeclare && ts.isVariableDeclaration(fnDeclare) && 
+          fnDeclare.initializer && ts.isFunctionExpression(fnDeclare.initializer);
+          
+        // If this is a variable holding a function expression, call through the function pointer
+        if (isFunctionVar) {
+          // Get the variable name and use it as a function pointer
+          const varName = node.expression.getText();
+          
+          // Get arguments
+          let argsList = node.arguments
+            .map((argNode) => getEmitNode(argNode, option).emit());
+            
+          const args = argsList.join(",");
+          
+          // Call through the function pointer
+          return `(*${varName})(${args})`;
+        }
+        
+        // Regular function call
         const fnName = fnDeclare
           ? getFunctionName(fnDeclare as ts.FunctionDeclaration, option)
           : "";

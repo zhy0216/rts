@@ -91,9 +91,42 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
           ts.forEachChild(source, collectVariables);
         });
         
+      // Track variable types for function pointers
+      const varTypes = new Map<string, string>();
+      
+      // Scan the source files for function expressions assigned to variables
+      const collectFunctionTypes = (node: ts.Node) => {
+        if (ts.isVariableDeclaration(node) && 
+            ts.isIdentifier(node.name) && 
+            node.initializer && 
+            ts.isFunctionExpression(node.initializer)) {
+          // The variable is assigned a function expression
+          const varName = node.name.getText();
+          // Get parameter types from the function expression
+          const params = node.initializer.parameters.map(p => {
+            const typeNode = p.type;
+            return typeNode ? (typeNode.getText() === 'number' ? 'int' : 'int') : 'int';
+          });
+          // For now, we're assuming all functions return int
+          varTypes.set(varName, `int (*${varName})(${params.join(', ')})`);
+        }
+        ts.forEachChild(node, collectFunctionTypes);
+      };
+      
+      // Scan all source files for function types
+      tsProgram.getSourceFiles()
+        .filter(s => !s.isDeclarationFile)
+        .forEach(source => {
+          ts.forEachChild(source, collectFunctionTypes);
+        });
+        
       // Generate global declarations for all variables
       const globalDeclarations = Array.from(allVars).map(varName => {
-        // Initialize all variables to 0 to avoid undefined behavior
+        // Use the appropriate type for function pointers
+        if (varTypes.has(varName)) {
+          return `${varTypes.get(varName)} = NULL;`;
+        }
+        // Default to int for regular variables
         return `int ${varName} = 0;`;
       }).join("\n");
       
