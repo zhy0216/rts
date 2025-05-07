@@ -134,6 +134,7 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <string.h>
 
 // Error handling infrastructure for throw statements
 typedef struct {

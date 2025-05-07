@@ -1,0 +1,20 @@
+// Basic try-catch statement test
+let divisor = 0;
+
+try {
+  // This will throw an error
+  if (divisor === 0) {
+    throw "Division by zero error";
+  }
+  
+  // This won't execute
+  console.log("This won't be printed");
+} catch (error) {
+  // The error is caught here
+  console.log("Error caught:");
+  // In this implementation, we don't try to access the error variable directly
+  console.log("Division by zero error");
+}
+
+// This code executes after the try-catch
+console.log("Program continues after error handling");
