@@ -22,18 +22,51 @@ export const testFixtures = (fixturePath: string) => {
         const fixtureName = path.basename(fixturePath);
         // Create a proper temp directory structure
         const tempDir = `/tmp/rts-tests/${fixtureName}`;
-        // Ensure the directory exists
-        fs.mkdirSync(tempDir, { recursive: true });
+        // Ensure the directory exists with proper permissions
+        fs.mkdirSync(tempDir, { recursive: true, mode: 0o755 });
         const exePath = `${tempDir}/${file.slice(0, -4)}`;
-        const cFile = Bun.file(`${exePath}.c`);
-        await Bun.write(cFile, cCode);
-        const proc = Bun.spawn(["cc", `${exePath}.c`, "-o", exePath]);
-        await proc.exited;
+        const cFilePath = `${exePath}.c`;
+        
+        // Write the C file
+        await Bun.write(cFilePath, cCode);
+        
+        // Make sure the C file exists before compiling
+        if (!fs.existsSync(cFilePath)) {
+          throw new Error(`C file not created at ${cFilePath}`);
+        }
+        
+        // Compile with error handling
+        const proc = Bun.spawn(["cc", cFilePath, "-o", exePath]);
+        const compileStatus = await proc.exited;
+        
+        if (compileStatus !== 0) {
+          const stderr = await new Response(proc.stderr).text();
+          throw new Error(`Compilation failed with status ${compileStatus}: ${stderr}`);
+        }
+        
+        // Make sure the executable exists before running
+        if (!fs.existsSync(exePath)) {
+          throw new Error(`Executable not created at ${exePath}`);
+        }
+        
+        // Make the executable file executable
+        fs.chmodSync(exePath, 0o755);
+        
+        // Run the executable
         const r = Bun.spawn([exePath]);
         const output = await new Response(r.stdout).text();
-        await r.exited;
+        const exitCode = await r.exited;
+        
+        // Cleanup temporary files
+        try {
+          fs.unlinkSync(cFilePath);
+          fs.unlinkSync(exePath);
+        } catch (e) {
+          console.warn(`Failed to clean up temporary files: ${e}`);
+        }
+        
         expect(output).toEqual(expectOutput);
-        expect(r.exitCode).toEqual(0);
+        expect(exitCode).toEqual(0);
       });
     });
 };
