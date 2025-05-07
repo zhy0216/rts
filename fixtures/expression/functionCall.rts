@@ -1,0 +1,29 @@
+// Define functions with various argument lists
+function add(a: number, b: number): number {
+  return a + b
+}
+
+function multiply(a: number, b: number): number {
+  return a * b
+}
+
+function greetId(id: number): number {
+  return id + 100
+}
+
+// Test function calls with arguments
+let sum = add(5, 3)
+let product = multiply(4, 6)
+
+// Test function call with variable arguments
+let x = 10
+let y = 7
+let result = add(x, y)
+
+// Test nested function calls
+let complexResult = add(multiply(2, 3), add(4, 5))
+
+console.log(sum)
+console.log(product)
+console.log(result)
+console.log(complexResult)
