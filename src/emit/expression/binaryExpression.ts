@@ -3,15 +3,19 @@ import ts, { SyntaxKind } from "typescript";
 import { getEmitNode, isCompoundAssignment, union } from "../helper.ts";
 
 const getOperator = (operator: ts.BinaryOperatorToken): string => {
-  if (operator.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
-    return "==";
+  switch (operator.kind) {
+    case ts.SyntaxKind.EqualsEqualsEqualsToken:
+      return "==";
+    case ts.SyntaxKind.ExclamationEqualsEqualsToken:
+      return "!=";
+    case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken:
+      // Unsigned right shift in C
+      // Implementing as a combination of right shift and bitwise operations
+      // Note: this is simplified and would need more accurate handling for full implementation
+      return ">>"; // We'll handle the unsigned conversion in the emit method
+    default:
+      return operator.getText();
   }
-  
-  if (operator.kind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
-    return "!=";
-  }
-
-  return operator.getText();
 };
 
 // Maps compound assignment operators to their simple binary operator equivalent
@@ -61,6 +65,14 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
       if (isCompoundAssignment(node.operatorToken.kind)) {
         const operator = compoundToSimpleOperator(node.operatorToken.kind);
         const expressionString = `${left} = ${left} ${operator} ${right}`;
+        return needParent ? `(${expressionString})` : expressionString;
+      }
+      
+      // Special handling for unsigned right shift operator (>>>)
+      if (node.operatorToken.kind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken) {
+        // In C, unsigned right shift requires typecasting to handle it properly
+        // We'll use a combination of right shift and bitwise AND to simulate JavaScript's >>> behavior
+        const expressionString = `(unsigned int)${left} >> ${right}`;
         return needParent ? `(${expressionString})` : expressionString;
       }
       
