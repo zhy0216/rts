@@ -1,0 +1,29 @@
+let x = 5
+let y = 10
+
+// Test the += operator
+x += 3
+y += x
+
+// Test the -= operator 
+let a = 20
+a -= 5
+
+// Test the *= operator
+let b = 4
+b *= 3
+
+// Test the /= operator
+let c = 15
+c /= 3
+
+// Test the %= operator
+let d = 17
+d %= 5
+
+console.log(x)
+console.log(y)
+console.log(a)
+console.log(b)
+console.log(c)
+console.log(d)
