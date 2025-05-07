@@ -1,0 +1,10 @@
+// Basic throw statement test
+let divisor = 0;
+
+// This will cause an uncaught error
+if (divisor === 0) {
+  throw "Division by zero error";
+}
+
+let result = 10 / divisor;
+console.log(result); // This line won't execute because of the thrown error
