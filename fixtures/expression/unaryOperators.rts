@@ -1,0 +1,41 @@
+// Test logical NOT operator (!)
+let a = true
+let notA = !a
+let notFalse = !false
+
+// Test unary plus and minus operators (+ and -)
+let b = 5
+let negB = -b
+let posB = +b
+let negTen = -10
+let posTen = +10
+
+// Test bitwise NOT operator (~)
+let c = 5
+let bitwiseNotC = ~c
+
+// Test prefix and postfix operators (++ and --)
+let d = 3
+let prefixIncD = ++d
+let e = 7
+let postfixIncE = e++
+let f = 10
+let prefixDecF = --f
+let g = 15
+let postfixDecG = g--
+
+console.log(notA)
+console.log(notFalse)
+console.log(negB)
+console.log(posB)
+console.log(negTen)
+console.log(posTen)
+console.log(bitwiseNotC)
+console.log(d)
+console.log(prefixIncD)
+console.log(e)
+console.log(postfixIncE)
+console.log(f)
+console.log(prefixDecF)
+console.log(g)
+console.log(postfixDecG)
