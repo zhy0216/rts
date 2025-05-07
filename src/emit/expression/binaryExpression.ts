@@ -6,6 +6,10 @@ const getOperator = (operator: ts.BinaryOperatorToken): string => {
   if (operator.kind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
     return "==";
   }
+  
+  if (operator.kind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
+    return "!=";
+  }
 
   return operator.getText();
 };
