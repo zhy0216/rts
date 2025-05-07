@@ -26,6 +26,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.StringLiteral]: literalEmitter,
   [ts.SyntaxKind.TrueKeyword]: literalEmitter,
   [ts.SyntaxKind.FalseKeyword]: literalEmitter,
+  [ts.SyntaxKind.NullKeyword]: literalEmitter,
   [ts.SyntaxKind.Identifier]: identifierEmitter,
   [ts.SyntaxKind.Block]: blockEmitter,
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
