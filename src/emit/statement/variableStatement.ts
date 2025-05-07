@@ -10,24 +10,27 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
   const initEmitters: Record<string, AstNode | undefined> = {};
   const declarationStrings: string[] = [];
   const s = new Set<ts.Identifier>();
+  
   variableSTNode.declarationList.declarations.forEach((node) => {
-    // TODO: object binding
+    // Process initializers
     if (node.initializer) {
       initEmitters[node.name.getText()] = getEmitNode(node.initializer, option);
     }
+    
     if (ts.isIdentifier(node.name)) {
       s.add(node.name);
+      
+      // Get the variable name
+      const varName = node.name.getText();
+      
+      // Get initializer if any
+      const initString = initEmitters[varName]?.emit();
+      
+      // Only emit the initialization as assignment, since declaration is done globally
+      if (initString) {
+        declarationStrings.push(`${varName} = ${initString};\n`);
+      }
     }
-    const type = checker.getTypeAtLocation(node);
-    if (type.getFlags() & TypeFlags.Number) {
-      declarationStrings.push(`int ${node.name.getText()}`);
-    }
-
-    const initString = initEmitters[node.name.getText()]?.emit();
-    if (initString) {
-      declarationStrings.push(" = " + initString);
-    }
-    declarationStrings.push(";\n");
   });
 
   return {

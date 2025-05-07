@@ -23,12 +23,14 @@ export const functionDeclareEmitter: Emitter<
     functionType,
     ts.SignatureKind.Call,
   )[0];
-  const parameterString = node.parameters
+  // Build the parameter string from function parameters
+  let parameterList = node.parameters
     .map((p) => {
       const pType = tsType2C(checker.getTypeAtLocation(p));
       return `${pType} ${p.name.getText()}`;
-    })
-    .join(", ");
+    });
+  
+  const parameterString = parameterList.join(", ");
   const returnType = checker.getReturnTypeOfSignature(signature);
   const getAllVars = () => union(bodyNode?.getAllVars());
   // const getUnboundVars = () =>
@@ -61,7 +63,10 @@ export const functionDeclareEmitter: Emitter<
   // node.parameters
   return {
     emit: () => {
-      const bodyString = bodyNode?.emit() ?? "";
+      // Get the original body
+      let bodyString = bodyNode?.emit() ?? "";
+      
+      // Generate the function declaration string
       const declareString = `${tsType2C(
         returnType,
       )} ${functionName}(${parameterString})`;

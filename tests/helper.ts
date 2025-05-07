@@ -18,7 +18,13 @@ export const testFixtures = (fixturePath: string) => {
           flag: "r",
         });
         const cCode = transpile(sourceCode);
-        const exePath = `/tmp${fixturePath}/${file.slice(0, -4)}`;
+        // Use path.basename to get just the directory name, not the full path
+        const fixtureName = path.basename(fixturePath);
+        // Create a proper temp directory structure
+        const tempDir = `/tmp/rts-tests/${fixtureName}`;
+        // Ensure the directory exists
+        fs.mkdirSync(tempDir, { recursive: true });
+        const exePath = `${tempDir}/${file.slice(0, -4)}`;
         const cFile = Bun.file(`${exePath}.c`);
         await Bun.write(cFile, cCode);
         const proc = Bun.spawn(["cc", `${exePath}.c`, "-o", exePath]);

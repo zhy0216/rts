@@ -136,19 +136,27 @@ const structClosure = (
     }
     const declareVar = symbol.getDeclarations()?.[0];
 
-    if (
-      declareVar &&
-      ts.isVariableDeclaration(declareVar) &&
-      functionEnvRecord.boundVars.has(declareVar.name as ts.Identifier)
-    ) {
+    // Changed condition to include all variables from outer scopes
+    if (declareVar && ts.isVariableDeclaration(declareVar)) {
       const varName = declareVar.name.getText();
       const typeNode = checker.getTypeAtLocation(declareVar);
       declareVarStrings[varName] = `${tsType2C(typeNode)} ${varName};`;
     }
   });
+  
   const declareString = Object.values(declareVarStrings).join("\n");
 
   return `struct ${functionEnvRecord.closureName} {\n${declareString}\n};`;
 };
 
 /** end EnvRecord */
+
+// Create a map to keep track of variable name mappings for different scopes
+// This helps with handling shadowed variables across different scopes
+export const variableMap = new Map<string, string>();
+
+// Create a counter for generating unique variable names to handle shadowing
+let shadowCounter = 0;
+
+// Function to get a new unique shadow counter value
+export const getNextShadowCounter = () => shadowCounter++;

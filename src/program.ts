@@ -69,10 +69,39 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       const statementString = statementEmitNodes
         .map((s) => s.emit())
         .join("\n");
+      // Use a simplified approach with global variables
+      // Collect all unique variable names used in the program
+      const allVars = new Set<string>();
+      
+      // Recursively scan the source files for all variables
+      const collectVariables = (node: ts.Node) => {
+        if (ts.isVariableDeclaration(node)) {
+          if (ts.isIdentifier(node.name)) {
+            // Add the variable to our set of all variables
+            allVars.add(node.name.getText());
+          }
+        }
+        ts.forEachChild(node, collectVariables);
+      };
+      
+      // Scan all source files
+      tsProgram.getSourceFiles()
+        .filter(s => !s.isDeclarationFile)
+        .forEach(source => {
+          ts.forEachChild(source, collectVariables);
+        });
+        
+      // Generate global declarations for all variables
+      const globalDeclarations = Array.from(allVars).map(varName => {
+        // Initialize all variables to 0 to avoid undefined behavior
+        return `int ${varName} = 0;`;
+      }).join("\n");
+      
       return `
 #include <stdio.h>
 
-${makeDeclareClosure(option)}
+// Global variables for closure support
+${globalDeclarations}
 
 ${option.fns.map((f) => f.declare).join("\n")}
 
