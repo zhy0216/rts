@@ -44,7 +44,23 @@ The first milestone focused on implementing the core language features of rts, i
 - Function types
 - Null type
 
-For a detailed list of implemented features, see [docs/roadmad/0.0.1.md](docs/roadmad/0.0.1.md).
+### 0.0.2 - Advanced Language Features (Completed)
+
+The second milestone expanded on the core features by implementing more advanced JavaScript language features:
+
+#### Statements
+- Enhanced control flow: `do-while`, `switch`, `try-catch-finally`
+- Extended loop constructs: `for-of`, `for-in`
+- `throw` statement for exception handling
+
+#### Expressions
+- Object system: `this` keyword, property accessors
+- Object and array literals/initializers
+- Operators: `typeof`, `delete`, `void`, `instanceof`, `in`, `new`
+- Regular expression literals
+- Comma operator
+
+For a detailed list of implemented features, see [docs/roadmad/0.0.1.md](docs/roadmad/0.0.1.md) and [docs/roadmad/0.0.2.md](docs/roadmad/0.0.2.md).
 
 ## Acknowledgments
 - [ts2c](https://github.com/andrei-markeev/ts2c)
