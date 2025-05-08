@@ -17,24 +17,64 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         const argument = node.arguments[0];
         const type = checker.getTypeAtLocation(argument);
         const emitStrings: string[] = [];
-        if (type.isStringLiteral()) {
-          emitStrings.push(`printf("\\"%s\\"\\n", ${argument.getText()})`);
-        }
-
-        if (type.getFlags() & TypeFlags.NumberLike) {
-          // TODO: consider number is int first
-          emitStrings.push(
-            `printf("%d\\n", ${getEmitNode(argument, option).emit()})`,
-          );
-        }
-
-        if (type.getFlags() & TypeFlags.BooleanLike) {
-          emitStrings.push(
-            `printf("%s\\n", ${getEmitNode(
-              argument,
-              option,
-            ).emit()}?"true": "false")`,
-          );
+        
+        // Handle different expression types
+        if (ts.isBinaryExpression(argument)) {
+          // Handle string concatenation
+          if (argument.operatorToken.kind === ts.SyntaxKind.PlusToken && 
+              (ts.isStringLiteral(argument.left) || ts.isStringLiteral(argument.right))) {
+            // String concatenation case
+            const leftEmitter = getEmitNode(argument.left, option);
+            const rightEmitter = getEmitNode(argument.right, option);
+            
+            // If left is a string literal and right is a variable or number
+            if (ts.isStringLiteral(argument.left)) {
+              const leftText = argument.left.getText().replace(/"/g, '');
+              const rightValue = rightEmitter.emit();
+              
+              emitStrings.push(`printf("${leftText}%d\\n", ${rightValue})`);
+            } else {
+              // Right is a string literal
+              const leftValue = leftEmitter.emit();
+              const rightText = argument.right.getText().replace(/"/g, '');
+              
+              emitStrings.push(`printf("%d${rightText}\\n", ${leftValue})`);
+            }
+          } else {
+            // Handle other binary operations (arithmetic, comparison, etc.)
+            // Generate code for the binary expression and print it
+            const exprEmitter = getEmitNode(argument, option);
+            
+            // Check if it's a boolean comparison
+            if ([ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken,
+                 ts.SyntaxKind.LessThanToken, ts.SyntaxKind.GreaterThanToken].includes(argument.operatorToken.kind)) {
+              // Boolean comparison
+              emitStrings.push(`printf("%s\\n", ${exprEmitter.emit()} ? "true" : "false")`);
+            } else {
+              // Arithmetic operation
+              emitStrings.push(`printf("%d\\n", ${exprEmitter.emit()})`);
+            }
+          }
+        } else {
+          // Handle simple cases (literals and identifiers)
+          if (type.isStringLiteral()) {
+            emitStrings.push(`printf("\\"${argument.getText().replace(/"/g, '')}\\"\\n")`);
+          } else if (type.getFlags() & TypeFlags.NumberLike) {
+            // Number type
+            emitStrings.push(
+              `printf("%d\\n", ${getEmitNode(argument, option).emit()})`,
+            );
+          } else if (type.getFlags() & TypeFlags.BooleanLike) {
+            // Boolean type
+            emitStrings.push(
+              `printf("%s\\n", ${getEmitNode(argument, option).emit()} ? "true" : "false")`,
+            );
+          } else {
+            // Default case - try to print as a number
+            emitStrings.push(
+              `printf("%d\\n", ${getEmitNode(argument, option).emit()})`,
+            );
+          }
         }
 
         return emitStrings.join(";\n");

@@ -152,6 +152,9 @@ void rts_throw(char* message) {
   longjmp(exception_ctx.env, 1);
 }
 
+// Array declarations
+${option.arrays ? option.arrays.map(arr => `int ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
+
 // Global variables for closure support
 ${globalDeclarations}
 

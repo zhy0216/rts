@@ -1,0 +1,10 @@
+// Basic for-of statement test
+const numbers = [1, 2, 3, 4, 5, 6, 0];
+let sum = 0;
+
+// Loop through the array using for-of
+for (const num of numbers) {
+  sum = sum + num;
+}
+
+console.log("Sum of numbers: " + sum);

@@ -13,6 +13,7 @@ import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
 import { returnStatementEmitter } from "./statement/returnStatement.ts";
 import { whileStatementEmitter } from "./statement/whileStatement.ts";
 import { forStatementEmitter } from "./statement/forStatement.ts";
+import { forOfStatementEmitter } from "./statement/forOfStatement.ts";
 import { continueStatementEmitter } from "./statement/continueStatement.ts";
 import { breakStatementEmitter } from "./statement/breakStatement.ts";
 import { switchStatementEmitter } from "./statement/switchStatement.ts";
@@ -21,6 +22,7 @@ import { tryStatementEmitter } from "./statement/tryStatement.ts";
 import { conditionalExpressionEmitter } from "./expression/conditionalExpression.ts";
 import { unaryExpressionEmitter } from "./expression/unaryExpression.ts";
 import { functionExpressionEmitter } from "./expression/functionExpression.ts";
+import { arrayLiteralEmitter } from "./expression/arrayLiteralExpression.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 
@@ -40,9 +42,11 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.ConditionalExpression]: conditionalExpressionEmitter,
   [ts.SyntaxKind.PrefixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.PostfixUnaryExpression]: unaryExpressionEmitter,
+  [ts.SyntaxKind.ArrayLiteralExpression]: arrayLiteralEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
   [ts.SyntaxKind.ForStatement]: forStatementEmitter,
+  [ts.SyntaxKind.ForOfStatement]: forOfStatementEmitter,
   [ts.SyntaxKind.ContinueStatement]: continueStatementEmitter,
   [ts.SyntaxKind.BreakStatement]: breakStatementEmitter,
   [ts.SyntaxKind.SwitchStatement]: switchStatementEmitter,
