@@ -26,6 +26,16 @@ import { unaryExpressionEmitter } from "./expression/unaryExpression.ts";
 import { functionExpressionEmitter } from "./expression/functionExpression.ts";
 import { arrayLiteralEmitter } from "./expression/arrayLiteralExpression.ts";
 import { objectLiteralEmitter } from "./expression/objectLiteralExpression.ts";
+import { propertyAccessEmitter } from "./expression/propertyAccessExpression.ts";
+import { typeofEmitter } from "./expression/typeofExpression.ts";
+import { voidEmitter } from "./expression/voidExpression.ts";
+import { commaEmitter } from "./expression/commaExpression.ts";
+import { inExpressionEmitter } from "./expression/inExpression.ts";
+import { deleteEmitter } from "./expression/deleteExpression.ts";
+import { thisEmitter } from "./expression/thisExpression.ts";
+import { instanceofEmitter } from "./expression/instanceofExpression.ts";
+import { newEmitter } from "./expression/newExpression.ts";
+import { regExpLiteralEmitter } from "./expression/regexpLiteralExpression.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 
@@ -47,6 +57,13 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.PostfixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.ArrayLiteralExpression]: arrayLiteralEmitter,
   [ts.SyntaxKind.ObjectLiteralExpression]: objectLiteralEmitter,
+  [ts.SyntaxKind.PropertyAccessExpression]: propertyAccessEmitter,
+  [ts.SyntaxKind.TypeOfExpression]: typeofEmitter,
+  [ts.SyntaxKind.VoidExpression]: voidEmitter,
+  [ts.SyntaxKind.DeleteExpression]: deleteEmitter,
+  [ts.SyntaxKind.ThisKeyword]: thisEmitter,
+  [ts.SyntaxKind.NewExpression]: newEmitter,
+  [ts.SyntaxKind.RegularExpressionLiteral]: regExpLiteralEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
   [ts.SyntaxKind.DoStatement]: doWhileStatementEmitter,
@@ -61,6 +78,30 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
   [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
+};
+
+// Helper to check if a binary expression is an 'in' expression
+export const isInExpression = (node: ts.Node): boolean => {
+  return ts.isBinaryExpression(node) && 
+         node.operatorToken.kind === ts.SyntaxKind.InKeyword;
+};
+
+// Helper to check if a binary expression is an 'instanceof' expression
+export const isInstanceofExpression = (node: ts.Node): boolean => {
+  return ts.isBinaryExpression(node) && 
+         node.operatorToken.kind === ts.SyntaxKind.InstanceOfKeyword;
+};
+
+// Override the binary expression emitter for 'in' and 'instanceof' expressions
+const originalBinaryExpressionEmitter = nodeToEmitter[ts.SyntaxKind.BinaryExpression];
+nodeToEmitter[ts.SyntaxKind.BinaryExpression] = (node: ts.Node, option: EmitterOption) => {
+  if (isInExpression(node)) {
+    return inExpressionEmitter(node as ts.BinaryExpression, option);
+  }
+  if (isInstanceofExpression(node)) {
+    return instanceofEmitter(node as ts.BinaryExpression, option);
+  }
+  return originalBinaryExpressionEmitter(node, option);
 };
 
 export const getEmitNode: Emitter = (s, option) => {

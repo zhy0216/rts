@@ -61,6 +61,13 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
       const right = rightEmitNode.emit();
       const needParent = ts.isBinaryExpression(node.parent);
       
+      // Handle comma operator
+      if (node.operatorToken.kind === ts.SyntaxKind.CommaToken) {
+        // Use C's comma operator directly
+        const expressionString = `(${left}, ${right})`;
+        return expressionString;
+      }
+      
       // Handle compound assignments
       if (isCompoundAssignment(node.operatorToken.kind)) {
         const operator = compoundToSimpleOperator(node.operatorToken.kind);

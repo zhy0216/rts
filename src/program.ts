@@ -152,6 +152,53 @@ void rts_throw(char* message) {
   longjmp(exception_ctx.env, 1);
 }
 
+// Function to implement the typeof operator
+char* rts_typeof(void* value) {
+  // For now, we'll just return "number" for simplicity
+  // In a full implementation, this would check the type at runtime
+  return "number";
+}
+
+// Function to implement the 'in' operator
+int rts_has_property(void* obj, char* prop) {
+  // Simplified implementation that always returns 1 (true)
+  // In a real implementation, we would check if the property exists in the object
+  return 1;
+}
+
+// Function to implement the delete operator
+int rts_delete_property(void* objProp) {
+  // Simplified implementation that always returns 1 (true)
+  // In a real implementation, we would delete the property from the object
+  return 1;
+}
+
+// Function to implement the instanceof operator
+int rts_instanceof(void* obj, void* constructor) {
+  // Simplified implementation that always returns 1 (true)
+  // In a real implementation, we would check if the object is an instance of the constructor
+  return 1;
+}
+
+// Function to implement the new operator
+void* rts_new(void* constructor, ...) {
+  // Simplified implementation that returns a static pointer
+  // In a real implementation, we would allocate a new object and call the constructor
+  static int dummy_object = 0;
+  return &dummy_object;
+}
+
+// Function to implement regular expression creation
+void* rts_create_regexp(char* pattern, char* flags) {
+  // Simplified implementation that returns a static pointer
+  // In a real implementation, we would compile the regular expression with the flags
+  static int dummy_regexp = 0;
+  return &dummy_regexp;
+}
+
+// Global variable for 'this' context
+void* this_context = NULL;
+
 // Array declarations
 ${option.arrays ? option.arrays.map(arr => `int ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
 
