@@ -16,12 +16,21 @@ export interface ArrayDeclaration {
   values: string;
 }
 
+export interface ObjectDeclaration {
+  name: string;
+  properties: {
+    name: string;
+    value: string;
+  }[];
+}
+
 export interface EmitterOption {
   checker: ts.TypeChecker;
   envRecord: EnvRecord;
-  fns: CFunction[]; // this may not enough, but let me try
-  catchVariable?: string; // For try-catch statements to pass error variable
-  arrays?: ArrayDeclaration[]; // For array literal expressions
+  fns: CFunction[]; 
+  catchVariable?: string; 
+  arrays?: ArrayDeclaration[]; 
+  objects?: ObjectDeclaration[];
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;

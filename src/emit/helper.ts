@@ -12,8 +12,10 @@ import { ifStatementEmitter } from "./statement/ifStatement.ts";
 import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
 import { returnStatementEmitter } from "./statement/returnStatement.ts";
 import { whileStatementEmitter } from "./statement/whileStatement.ts";
+import { doWhileStatementEmitter } from "./statement/doWhileStatement.ts";
 import { forStatementEmitter } from "./statement/forStatement.ts";
 import { forOfStatementEmitter } from "./statement/forOfStatement.ts";
+import { forInStatementEmitter } from "./statement/forInStatement.ts";
 import { continueStatementEmitter } from "./statement/continueStatement.ts";
 import { breakStatementEmitter } from "./statement/breakStatement.ts";
 import { switchStatementEmitter } from "./statement/switchStatement.ts";
@@ -23,6 +25,7 @@ import { conditionalExpressionEmitter } from "./expression/conditionalExpression
 import { unaryExpressionEmitter } from "./expression/unaryExpression.ts";
 import { functionExpressionEmitter } from "./expression/functionExpression.ts";
 import { arrayLiteralEmitter } from "./expression/arrayLiteralExpression.ts";
+import { objectLiteralEmitter } from "./expression/objectLiteralExpression.ts";
 import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
 
 
@@ -43,10 +46,13 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.PrefixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.PostfixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.ArrayLiteralExpression]: arrayLiteralEmitter,
+  [ts.SyntaxKind.ObjectLiteralExpression]: objectLiteralEmitter,
   [ts.SyntaxKind.IfStatement]: ifStatementEmitter,
   [ts.SyntaxKind.WhileStatement]: whileStatementEmitter,
+  [ts.SyntaxKind.DoStatement]: doWhileStatementEmitter,
   [ts.SyntaxKind.ForStatement]: forStatementEmitter,
   [ts.SyntaxKind.ForOfStatement]: forOfStatementEmitter,
+  [ts.SyntaxKind.ForInStatement]: forInStatementEmitter,
   [ts.SyntaxKind.ContinueStatement]: continueStatementEmitter,
   [ts.SyntaxKind.BreakStatement]: breakStatementEmitter,
   [ts.SyntaxKind.SwitchStatement]: switchStatementEmitter,

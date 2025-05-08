@@ -1,0 +1,9 @@
+// Basic for-in statement test
+let count = 0;
+
+// Iterate over "object" properties using for-in
+for (let prop in {}) {
+  count = count + 1;
+}
+
+console.log("Object property count: " + count);
