@@ -1,8 +1,11 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper.ts";
+import { Emitter } from '../../type';
+import ts from 'typescript';
+import { getEmitNode, union } from '../helper.ts';
 
-export const conditionalExpressionEmitter: Emitter<ts.ConditionalExpression> = (node, option) => {
+export const conditionalExpressionEmitter: Emitter<ts.ConditionalExpression> = (
+  node,
+  option
+) => {
   const conditionEmitNode = getEmitNode(node.condition, option);
   const whenTrueEmitNode = getEmitNode(node.whenTrue, option);
   const whenFalseEmitNode = getEmitNode(node.whenFalse, option);

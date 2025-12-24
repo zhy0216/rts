@@ -1,22 +1,25 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper";
+import { Emitter } from '../../type';
+import ts from 'typescript';
+import { getEmitNode, union } from '../helper';
 
 /**
  * Emitter for for-in statements
  * In C, we'll implement this by simulating iterating over object properties
  * Since we don't have full object support yet, this will be a simplified version
  */
-export const forInStatementEmitter: Emitter<ts.ForInStatement> = (node, option) => {
+export const forInStatementEmitter: Emitter<ts.ForInStatement> = (
+  node,
+  option
+) => {
   // The statement being executed in the loop body
   const statementEmitter = getEmitNode(node.statement, option);
-  
+
   // The object expression being iterated
   const expressionEmitter = getEmitNode(node.expression, option);
-  
+
   // The initializer (usually a variable declaration for the property name)
   let iterationVarName: string;
-  
+
   if (ts.isVariableDeclarationList(node.initializer)) {
     // Extract variable name from declaration
     const declaration = node.initializer.declarations[0];
@@ -25,17 +28,17 @@ export const forInStatementEmitter: Emitter<ts.ForInStatement> = (node, option) 
     // If it's an expression (usually an identifier), just use it directly
     iterationVarName = node.initializer.getText();
   } else {
-    throw new Error("Unsupported initializer type in for-in statement");
+    throw new Error('Unsupported initializer type in for-in statement');
   }
-  
+
   // Generate a unique ID for this for-in statement to avoid naming conflicts
   const forInId = `for_in_${node.pos}_${node.end}`;
-  
+
   return {
     emit: () => {
       const expression = expressionEmitter.emit();
       const statement = statementEmitter.emit();
-      
+
       // In a real implementation, we would iterate through object properties
       // Since we don't have full object support yet, we'll simulate it with a simple example
       // This is a placeholder implementation that will be improved when we add object support
@@ -55,11 +58,11 @@ export const forInStatementEmitter: Emitter<ts.ForInStatement> = (node, option) 
   }
 }`;
     },
-    
+
     getAllVars: () => {
       const expressionVars = expressionEmitter.getAllVars();
       const statementVars = statementEmitter.getAllVars();
-      
+
       return union(expressionVars, statementVars);
     },
   };

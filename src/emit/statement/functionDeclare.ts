@@ -1,5 +1,5 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
+import { Emitter } from '../../type';
+import ts from 'typescript';
 import {
   connectChildEnvRecord,
   diff,
@@ -7,8 +7,8 @@ import {
   getFunctionName,
   tsType2C,
   union,
-} from "../helper.ts";
-import { env } from "bun";
+} from '../helper.ts';
+import { env } from 'bun';
 
 export const functionDeclareEmitter: Emitter<
   ts.FunctionDeclaration | ts.FunctionExpression
@@ -21,22 +21,21 @@ export const functionDeclareEmitter: Emitter<
   const functionType = checker.getTypeAtLocation(node);
   const signature = checker.getSignaturesOfType(
     functionType,
-    ts.SignatureKind.Call,
+    ts.SignatureKind.Call
   )[0];
   // Build the parameter string from function parameters
-  let parameterList = node.parameters
-    .map((p) => {
-      const pType = tsType2C(checker.getTypeAtLocation(p));
-      return `${pType} ${p.name.getText()}`;
-    });
-  
-  const parameterString = parameterList.join(", ");
+  let parameterList = node.parameters.map((p) => {
+    const pType = tsType2C(checker.getTypeAtLocation(p));
+    return `${pType} ${p.name.getText()}`;
+  });
+
+  const parameterString = parameterList.join(', ');
   const returnType = checker.getReturnTypeOfSignature(signature);
   const getAllVars = () => union(bodyNode?.getAllVars());
   // const getUnboundVars = () =>
   //   diff(getAllVars(), new Set(envRecord.getBoundVars()));
   const functionEnvRecord = connectChildEnvRecord(envRecord, {
-    closureName: envRecord.closureName ?? functionName + "_closure",
+    closureName: envRecord.closureName ?? functionName + '_closure',
     children: [],
     name: functionName,
     boundVars: new Set(
@@ -45,8 +44,8 @@ export const functionDeclareEmitter: Emitter<
         .flatMap((n) =>
           n.declarationList.declarations
             .map((d) => d.name)
-            .filter(ts.isIdentifier),
-        ),
+            .filter(ts.isIdentifier)
+        )
     ),
     parent: envRecord,
     allVars: new Set(),
@@ -64,19 +63,19 @@ export const functionDeclareEmitter: Emitter<
   return {
     emit: () => {
       // Get the original body
-      let bodyString = bodyNode?.emit() ?? "";
-      
+      let bodyString = bodyNode?.emit() ?? '';
+
       // Generate the function declaration string
       const declareString = `${tsType2C(
-        returnType,
+        returnType
       )} ${functionName}(${parameterString})`;
 
       fns.push({
-        declare: declareString + ";",
+        declare: declareString + ';',
         implementation: `${declareString} ${bodyString};`,
       });
 
-      return "";
+      return '';
     },
     getAllVars,
   };

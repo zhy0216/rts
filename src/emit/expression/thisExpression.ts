@@ -1,5 +1,5 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
+import { Emitter } from '../../type';
+import ts from 'typescript';
 
 /**
  * Emitter for 'this' expressions
@@ -10,9 +10,9 @@ export const thisEmitter: Emitter<ts.ThisExpression> = (node, option) => {
     emit: () => {
       // In JavaScript, 'this' refers to the current execution context
       // For a simplified implementation, we'll use a global 'this_context' variable
-      return "this_context";
+      return 'this_context';
     },
-    
+
     getAllVars: () => {
       // No variables used here
       return new Set();

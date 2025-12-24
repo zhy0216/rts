@@ -1,15 +1,17 @@
-import { argv } from "process";
-import fs from "fs";
-import path from "path";
-import { transpile } from "./program";
+import { argv } from 'process';
+import fs from 'fs';
+import path from 'path';
+import { transpile } from './program';
 
 if (argv.length < 3) {
-  throw new Error("Usage: ./main <input_file_or_directory> <output_file_or_directory>");
+  throw new Error(
+    'Usage: ./main <input_file_or_directory> <output_file_or_directory>'
+  );
 }
 
 const inputPath = argv[argv.length - 2];
 const outputPath = argv[argv.length - 1];
-const isOutputFile = path.extname(outputPath) === ".c";
+const isOutputFile = path.extname(outputPath) === '.c';
 
 // Create output directory if it doesn't exist and it's not a file output
 if (!isOutputFile && !fs.existsSync(outputPath)) {
@@ -26,36 +28,39 @@ function processFile(inputFilePath: string, outputTarget: string): void {
     let outputFilePath: string;
 
     // If the output has .c extension, it's a direct file output
-    if (path.extname(outputTarget) === ".c") {
+    if (path.extname(outputTarget) === '.c') {
       outputFilePath = outputTarget;
     } else if (isDirectoryProcess) {
       // Calculate relative path to maintain directory structure
       const relativePath = path.relative(inputPath, inputFilePath);
       const relativeDir = path.dirname(relativePath);
-      const outputFileName = path.basename(inputFilePath, ".rts") + ".c";
-      
+      const outputFileName = path.basename(inputFilePath, '.rts') + '.c';
+
       // Create output directory structure if needed
       const fullOutputDir = path.join(outputTarget, relativeDir);
       if (!fs.existsSync(fullOutputDir)) {
         fs.mkdirSync(fullOutputDir, { recursive: true });
       }
-      
+
       outputFilePath = path.join(fullOutputDir, outputFileName);
     } else {
       // Single file case with directory output
       outputFilePath = outputTarget;
-      if (fs.existsSync(outputTarget) && fs.statSync(outputTarget).isDirectory()) {
-        const outputFileName = path.basename(inputFilePath, ".rts") + ".c";
+      if (
+        fs.existsSync(outputTarget) &&
+        fs.statSync(outputTarget).isDirectory()
+      ) {
+        const outputFileName = path.basename(inputFilePath, '.rts') + '.c';
         outputFilePath = path.join(outputTarget, outputFileName);
       }
     }
 
     // Read, process and write the file
     const sourceCode = fs.readFileSync(inputFilePath, {
-      encoding: "utf8",
-      flag: "r",
+      encoding: 'utf8',
+      flag: 'r',
     });
-    
+
     fs.writeFileSync(outputFilePath, transpile(sourceCode));
     console.log(`Processed: ${inputFilePath} -> ${outputFilePath}`);
   } catch (error) {
@@ -69,14 +74,14 @@ function processFile(inputFilePath: string, outputTarget: string): void {
 function processDirectory(dirPath: string, outputTarget: string): void {
   try {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Recursively process subdirectories
         processDirectory(fullPath, outputTarget);
-      } else if (entry.isFile() && path.extname(entry.name) === ".rts") {
+      } else if (entry.isFile() && path.extname(entry.name) === '.rts') {
         // Process RTS files
         processFile(fullPath, outputTarget);
       }
@@ -91,18 +96,20 @@ const inputStats = fs.statSync(inputPath);
 
 // If the output has .c extension and input is a directory, we can't output multiple files to one file
 if (isOutputFile && inputStats.isDirectory()) {
-  throw new Error("Cannot output multiple .rts files to a single .c file. Please provide a directory as output.");
+  throw new Error(
+    'Cannot output multiple .rts files to a single .c file. Please provide a directory as output.'
+  );
 }
 
 if (inputStats.isDirectory()) {
   // Process all .rts files in the directory and subdirectories
   processDirectory(inputPath, outputPath);
-  console.log("Compilation complete.");
+  console.log('Compilation complete.');
 } else {
   // Process a single file
-  if (path.extname(inputPath) !== ".rts") {
-    console.warn("Warning: Input file does not have .rts extension.");
+  if (path.extname(inputPath) !== '.rts') {
+    console.warn('Warning: Input file does not have .rts extension.');
   }
-  
+
   processFile(inputPath, outputPath);
 }

@@ -1,18 +1,18 @@
-import { Emitter } from "../../type";
-import ts, { SyntaxKind } from "typescript";
-import { getEmitNode, isCompoundAssignment, union } from "../helper.ts";
+import { Emitter } from '../../type';
+import ts, { SyntaxKind } from 'typescript';
+import { getEmitNode, isCompoundAssignment, union } from '../helper.ts';
 
 const getOperator = (operator: ts.BinaryOperatorToken): string => {
   switch (operator.kind) {
     case ts.SyntaxKind.EqualsEqualsEqualsToken:
-      return "==";
+      return '==';
     case ts.SyntaxKind.ExclamationEqualsEqualsToken:
-      return "!=";
+      return '!=';
     case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken:
       // Unsigned right shift in C
       // Implementing as a combination of right shift and bitwise operations
       // Note: this is simplified and would need more accurate handling for full implementation
-      return ">>"; // We'll handle the unsigned conversion in the emit method
+      return '>>'; // We'll handle the unsigned conversion in the emit method
     default:
       return operator.getText();
   }
@@ -22,35 +22,35 @@ const getOperator = (operator: ts.BinaryOperatorToken): string => {
 const compoundToSimpleOperator = (kind: ts.SyntaxKind): string => {
   switch (kind) {
     case ts.SyntaxKind.PlusEqualsToken:
-      return "+";
+      return '+';
     case ts.SyntaxKind.MinusEqualsToken:
-      return "-";
+      return '-';
     case ts.SyntaxKind.AsteriskEqualsToken:
-      return "*";
+      return '*';
     case ts.SyntaxKind.SlashEqualsToken:
-      return "/";
+      return '/';
     case ts.SyntaxKind.PercentEqualsToken:
-      return "%";
+      return '%';
     case ts.SyntaxKind.LessThanLessThanEqualsToken:
-      return "<<";
+      return '<<';
     case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-      return ">>";
+      return '>>';
     case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
-      return ">>>";
+      return '>>>';
     case ts.SyntaxKind.AmpersandEqualsToken:
-      return "&";
+      return '&';
     case ts.SyntaxKind.CaretEqualsToken:
-      return "^";
+      return '^';
     case ts.SyntaxKind.BarEqualsToken:
-      return "|";
+      return '|';
     default:
-      return "="; // Default to simple assignment
+      return '='; // Default to simple assignment
   }
 };
 
 export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
   node,
-  option,
+  option
 ) => {
   const leftEmitNode = getEmitNode(node.left, option);
   const rightEmitNode = getEmitNode(node.right, option);
@@ -60,31 +60,34 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
       const left = leftEmitNode.emit();
       const right = rightEmitNode.emit();
       const needParent = ts.isBinaryExpression(node.parent);
-      
+
       // Handle comma operator
       if (node.operatorToken.kind === ts.SyntaxKind.CommaToken) {
         // Use C's comma operator directly
         const expressionString = `(${left}, ${right})`;
         return expressionString;
       }
-      
+
       // Handle compound assignments
       if (isCompoundAssignment(node.operatorToken.kind)) {
         const operator = compoundToSimpleOperator(node.operatorToken.kind);
         const expressionString = `${left} = ${left} ${operator} ${right}`;
         return needParent ? `(${expressionString})` : expressionString;
       }
-      
+
       // Special handling for unsigned right shift operator (>>>)
-      if (node.operatorToken.kind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken) {
+      if (
+        node.operatorToken.kind ===
+        ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken
+      ) {
         // In C, unsigned right shift requires typecasting to handle it properly
         // We'll use a combination of right shift and bitwise AND to simulate JavaScript's >>> behavior
         const expressionString = `(unsigned int)${left} >> ${right}`;
         return needParent ? `(${expressionString})` : expressionString;
       }
-      
+
       const expressionString = `${left} ${getOperator(
-        node.operatorToken,
+        node.operatorToken
       )} ${right}`;
 
       return needParent ? `(${expressionString})` : expressionString;

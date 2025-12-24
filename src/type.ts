@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from 'typescript';
 
 export interface AstNode {
   getAllVars: () => Set<ts.Identifier>;
@@ -27,9 +27,9 @@ export interface ObjectDeclaration {
 export interface EmitterOption {
   checker: ts.TypeChecker;
   envRecord: EnvRecord;
-  fns: CFunction[]; 
-  catchVariable?: string; 
-  arrays?: ArrayDeclaration[]; 
+  fns: CFunction[];
+  catchVariable?: string;
+  arrays?: ArrayDeclaration[];
   objects?: ObjectDeclaration[];
 }
 

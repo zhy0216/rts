@@ -1,8 +1,11 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper.ts";
+import { Emitter } from '../../type';
+import ts from 'typescript';
+import { getEmitNode, union } from '../helper.ts';
 
-export const whileStatementEmitter: Emitter<ts.WhileStatement> = (node, option) => {
+export const whileStatementEmitter: Emitter<ts.WhileStatement> = (
+  node,
+  option
+) => {
   const conditionEmitNode = getEmitNode(node.expression, option);
   const bodyEmitNode = getEmitNode(node.statement, option);
 
@@ -15,9 +18,6 @@ export const whileStatementEmitter: Emitter<ts.WhileStatement> = (node, option) 
     },
 
     getAllVars: () =>
-      union(
-        conditionEmitNode.getAllVars(),
-        bodyEmitNode.getAllVars(),
-      ),
+      union(conditionEmitNode.getAllVars(), bodyEmitNode.getAllVars()),
   };
 };

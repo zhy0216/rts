@@ -1,14 +1,14 @@
-import ts from "typescript";
-import { Emitter } from "../../type";
-import { getEmitNode } from "../helper";
+import ts from 'typescript';
+import { Emitter } from '../../type';
+import { getEmitNode } from '../helper';
 
 export const expressionStatement: Emitter<ts.ExpressionStatement> = (
   node,
-  option,
+  option
 ) => {
   const emitNode = getEmitNode(node.expression, option);
   return {
-    emit: () => emitNode.emit() + ";",
+    emit: () => emitNode.emit() + ';',
     getAllVars: () => emitNode.getAllVars(),
   };
 };

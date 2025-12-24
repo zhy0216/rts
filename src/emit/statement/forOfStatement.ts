@@ -1,21 +1,24 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper";
+import { Emitter } from '../../type';
+import ts from 'typescript';
+import { getEmitNode, union } from '../helper';
 
 /**
  * Emitter for for-of statements
  * In C, we'll implement this using a loop over array elements
  */
-export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (node, option) => {
+export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (
+  node,
+  option
+) => {
   // The statement being executed on each iteration
   const statementEmitter = getEmitNode(node.statement, option);
-  
+
   // The expression being iterated (should be an array-like object)
   const expressionEmitter = getEmitNode(node.expression, option);
-  
+
   // The initializer (usually a variable declaration)
   let iterationVarName: string;
-  
+
   if (ts.isVariableDeclarationList(node.initializer)) {
     // Extract variable name from declaration
     const declaration = node.initializer.declarations[0];
@@ -24,18 +27,18 @@ export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (node, option) 
     // If it's an expression (usually an identifier), just use it directly
     iterationVarName = node.initializer.getText();
   } else {
-    throw new Error("Unsupported initializer type in for-of statement");
+    throw new Error('Unsupported initializer type in for-of statement');
   }
-  
+
   // Generate a unique ID for this for-of statement to avoid naming conflicts
   const forOfId = `for_of_${node.pos}_${node.end}`;
-  
+
   return {
     emit: () => {
       // We need to handle both direct array literals and array variables differently
       const expression = expressionEmitter.emit();
       const statement = statementEmitter.emit();
-      
+
       // Handle the iteration through the array
       return `
 {
@@ -60,11 +63,11 @@ export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (node, option) 
   }
 }`;
     },
-    
+
     getAllVars: () => {
       const expressionVars = expressionEmitter.getAllVars();
       const statementVars = statementEmitter.getAllVars();
-      
+
       return union(expressionVars, statementVars);
     },
   };

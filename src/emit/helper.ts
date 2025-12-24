@@ -1,43 +1,42 @@
-import { Emitter, EmitterOption, EnvRecord } from "../type";
-import * as ts from "typescript";
-import { emptyStatementEmitter } from "./statement/emptyStatement";
-import { callExpressionEmitter } from "./expression/callExpression";
-import { expressionStatement } from "./statement/expressionStatement";
-import { variableStatement } from "./statement/variableStatement";
-import { literalEmitter } from "./expression/literal";
-import { identifierEmitter } from "./expression/identifier";
-import { blockEmitter } from "./statement/block";
-import { binaryExpressionEmitter } from "./expression/binaryExpression.ts";
-import { ifStatementEmitter } from "./statement/ifStatement.ts";
-import { functionDeclareEmitter } from "./statement/functionDeclare.ts";
-import { returnStatementEmitter } from "./statement/returnStatement.ts";
-import { whileStatementEmitter } from "./statement/whileStatement.ts";
-import { doWhileStatementEmitter } from "./statement/doWhileStatement.ts";
-import { forStatementEmitter } from "./statement/forStatement.ts";
-import { forOfStatementEmitter } from "./statement/forOfStatement.ts";
-import { forInStatementEmitter } from "./statement/forInStatement.ts";
-import { continueStatementEmitter } from "./statement/continueStatement.ts";
-import { breakStatementEmitter } from "./statement/breakStatement.ts";
-import { switchStatementEmitter } from "./statement/switchStatement.ts";
-import { throwStatementEmitter } from "./statement/throwStatement.ts";
-import { tryStatementEmitter } from "./statement/tryStatement.ts";
-import { conditionalExpressionEmitter } from "./expression/conditionalExpression.ts";
-import { unaryExpressionEmitter } from "./expression/unaryExpression.ts";
-import { functionExpressionEmitter } from "./expression/functionExpression.ts";
-import { arrayLiteralEmitter } from "./expression/arrayLiteralExpression.ts";
-import { objectLiteralEmitter } from "./expression/objectLiteralExpression.ts";
-import { propertyAccessEmitter } from "./expression/propertyAccessExpression.ts";
-import { typeofEmitter } from "./expression/typeofExpression.ts";
-import { voidEmitter } from "./expression/voidExpression.ts";
-import { commaEmitter } from "./expression/commaExpression.ts";
-import { inExpressionEmitter } from "./expression/inExpression.ts";
-import { deleteEmitter } from "./expression/deleteExpression.ts";
-import { thisEmitter } from "./expression/thisExpression.ts";
-import { instanceofEmitter } from "./expression/instanceofExpression.ts";
-import { newEmitter } from "./expression/newExpression.ts";
-import { regExpLiteralEmitter } from "./expression/regexpLiteralExpression.ts";
-import { ImportClause, SyntaxKind, TypeFlags } from "typescript";
-
+import { Emitter, EmitterOption, EnvRecord } from '../type';
+import * as ts from 'typescript';
+import { emptyStatementEmitter } from './statement/emptyStatement';
+import { callExpressionEmitter } from './expression/callExpression';
+import { expressionStatement } from './statement/expressionStatement';
+import { variableStatement } from './statement/variableStatement';
+import { literalEmitter } from './expression/literal';
+import { identifierEmitter } from './expression/identifier';
+import { blockEmitter } from './statement/block';
+import { binaryExpressionEmitter } from './expression/binaryExpression.ts';
+import { ifStatementEmitter } from './statement/ifStatement.ts';
+import { functionDeclareEmitter } from './statement/functionDeclare.ts';
+import { returnStatementEmitter } from './statement/returnStatement.ts';
+import { whileStatementEmitter } from './statement/whileStatement.ts';
+import { doWhileStatementEmitter } from './statement/doWhileStatement.ts';
+import { forStatementEmitter } from './statement/forStatement.ts';
+import { forOfStatementEmitter } from './statement/forOfStatement.ts';
+import { forInStatementEmitter } from './statement/forInStatement.ts';
+import { continueStatementEmitter } from './statement/continueStatement.ts';
+import { breakStatementEmitter } from './statement/breakStatement.ts';
+import { switchStatementEmitter } from './statement/switchStatement.ts';
+import { throwStatementEmitter } from './statement/throwStatement.ts';
+import { tryStatementEmitter } from './statement/tryStatement.ts';
+import { conditionalExpressionEmitter } from './expression/conditionalExpression.ts';
+import { unaryExpressionEmitter } from './expression/unaryExpression.ts';
+import { functionExpressionEmitter } from './expression/functionExpression.ts';
+import { arrayLiteralEmitter } from './expression/arrayLiteralExpression.ts';
+import { objectLiteralEmitter } from './expression/objectLiteralExpression.ts';
+import { propertyAccessEmitter } from './expression/propertyAccessExpression.ts';
+import { typeofEmitter } from './expression/typeofExpression.ts';
+import { voidEmitter } from './expression/voidExpression.ts';
+import { commaEmitter } from './expression/commaExpression.ts';
+import { inExpressionEmitter } from './expression/inExpression.ts';
+import { deleteEmitter } from './expression/deleteExpression.ts';
+import { thisEmitter } from './expression/thisExpression.ts';
+import { instanceofEmitter } from './expression/instanceofExpression.ts';
+import { newEmitter } from './expression/newExpression.ts';
+import { regExpLiteralEmitter } from './expression/regexpLiteralExpression.ts';
+import { ImportClause, SyntaxKind, TypeFlags } from 'typescript';
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.EmptyStatement]: emptyStatementEmitter,
@@ -82,19 +81,27 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
 
 // Helper to check if a binary expression is an 'in' expression
 export const isInExpression = (node: ts.Node): boolean => {
-  return ts.isBinaryExpression(node) && 
-         node.operatorToken.kind === ts.SyntaxKind.InKeyword;
+  return (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.InKeyword
+  );
 };
 
 // Helper to check if a binary expression is an 'instanceof' expression
 export const isInstanceofExpression = (node: ts.Node): boolean => {
-  return ts.isBinaryExpression(node) && 
-         node.operatorToken.kind === ts.SyntaxKind.InstanceOfKeyword;
+  return (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.InstanceOfKeyword
+  );
 };
 
 // Override the binary expression emitter for 'in' and 'instanceof' expressions
-const originalBinaryExpressionEmitter = nodeToEmitter[ts.SyntaxKind.BinaryExpression];
-nodeToEmitter[ts.SyntaxKind.BinaryExpression] = (node: ts.Node, option: EmitterOption) => {
+const originalBinaryExpressionEmitter =
+  nodeToEmitter[ts.SyntaxKind.BinaryExpression];
+nodeToEmitter[ts.SyntaxKind.BinaryExpression] = (
+  node: ts.Node,
+  option: EmitterOption
+) => {
   if (isInExpression(node)) {
     return inExpressionEmitter(node as ts.BinaryExpression, option);
   }
@@ -114,22 +121,22 @@ export const getEmitNode: Emitter = (s, option) => {
 
 export const getFunctionName = (
   node: ts.FunctionDeclaration | ts.FunctionExpression,
-  option: EmitterOption,
+  option: EmitterOption
 ): string => {
   // TODO: consider multiple files? import, export
-  const idName = node.name ? node.name.getText() + "_" : "";
+  const idName = node.name ? node.name.getText() + '_' : '';
   return `__func_${idName}${node.pos}_${node.end}`;
 };
 
 export const tsType2C = (node: ts.Type) => {
   if (node.getFlags() & TypeFlags.NumberLike) {
-    return "int";
+    return 'int';
   } else if (node.getFlags() & TypeFlags.StringLike) {
-    return "char *";
+    return 'char *';
   } else if (node.getFlags() & TypeFlags.BooleanLike) {
-    return "int";
+    return 'int';
   } else if (node.getFlags() & TypeFlags.Void) {
-    return "void";
+    return 'void';
   }
 };
 
@@ -157,7 +164,7 @@ export const diff = <T>(setA: Set<T>, setB: Set<T>) => {
 
 // from tsc
 export function isCompoundAssignment(
-  kind: ts.BinaryOperator,
+  kind: ts.BinaryOperator
 ): kind is ts.CompoundAssignmentOperator {
   return (
     kind >= ts.SyntaxKind.FirstCompoundAssignment &&
@@ -168,7 +175,7 @@ export function isCompoundAssignment(
 /** start EnvRecord */
 export const connectChildEnvRecord = (
   envRecord: EnvRecord,
-  childEnv: EnvRecord,
+  childEnv: EnvRecord
 ): EnvRecord => {
   envRecord.children.push(childEnv);
   return childEnv;
@@ -183,14 +190,14 @@ export const makeDeclareClosure = (option: EmitterOption): string => {
     }
   }
 
-  return declareString.join("\n");
+  return declareString.join('\n');
 };
 
 const allClosureVars = (functionEnvRecord: EnvRecord): Set<ts.Identifier> => {
   // console.log("########## functionEnvRecord:", functionEnvRecord);
   const closureVars = diff(
     functionEnvRecord.allVars,
-    functionEnvRecord.boundVars,
+    functionEnvRecord.boundVars
   );
 
   return union(closureVars, ...functionEnvRecord.children.map(allClosureVars));
@@ -198,7 +205,7 @@ const allClosureVars = (functionEnvRecord: EnvRecord): Set<ts.Identifier> => {
 
 const structClosure = (
   functionEnvRecord: EnvRecord,
-  { checker }: EmitterOption,
+  { checker }: EmitterOption
 ): string => {
   const closureVars = allClosureVars(functionEnvRecord);
   const declareVarStrings: Record<string, string> = {};
@@ -216,8 +223,8 @@ const structClosure = (
       declareVarStrings[varName] = `${tsType2C(typeNode)} ${varName};`;
     }
   });
-  
-  const declareString = Object.values(declareVarStrings).join("\n");
+
+  const declareString = Object.values(declareVarStrings).join('\n');
 
   return `struct ${functionEnvRecord.closureName} {\n${declareString}\n};`;
 };

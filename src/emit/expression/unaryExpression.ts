@@ -1,14 +1,16 @@
-import { Emitter } from "../../type";
-import ts from "typescript";
-import { getEmitNode, union } from "../helper.ts";
+import { Emitter } from '../../type';
+import ts from 'typescript';
+import { getEmitNode, union } from '../helper.ts';
 
-export const unaryExpressionEmitter: Emitter<ts.PrefixUnaryExpression | ts.PostfixUnaryExpression> = (node, option) => {
+export const unaryExpressionEmitter: Emitter<
+  ts.PrefixUnaryExpression | ts.PostfixUnaryExpression
+> = (node, option) => {
   const operandEmitNode = getEmitNode(node.operand, option);
 
   return {
     emit: () => {
       const operand = operandEmitNode.emit();
-      
+
       // Process based on the kind of operator
       switch (node.operator) {
         case ts.SyntaxKind.ExclamationToken: // Logical NOT (!)
