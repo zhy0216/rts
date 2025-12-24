@@ -1,0 +1,7 @@
+function doSomething(): void {
+    console.log(1);
+    return;
+}
+
+doSomething();
+console.log(2);

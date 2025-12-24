@@ -18,10 +18,18 @@ export const propertyAccessEmitter: Emitter<ts.PropertyAccessExpression> = (
 
   return {
     emit: () => {
-      const expression = expressionEmitter.emit();
+      // Check if the expression is an identifier that has an object binding
+      if (ts.isIdentifier(node.expression)) {
+        const varName = node.expression.getText();
+        const objectId = option.objectBindings?.get(varName);
+        if (objectId) {
+          // Use the object ID for property access
+          return `${objectId}_${propertyName}`;
+        }
+      }
 
-      // For now, implement a simple property access mechanism
-      // In a full implementation, we would use proper C structure access
+      // Fallback: use the expression directly
+      const expression = expressionEmitter.emit();
       return `${expression}_${propertyName}`;
     },
 

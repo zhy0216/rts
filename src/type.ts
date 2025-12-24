@@ -36,6 +36,8 @@ export interface EmitterOption {
   capturedVars?: Set<string>;
   // Name of the closure context parameter (e.g., "closure_ctx")
   closureCtxName?: string;
+  // Map from variable name to object ID for property access resolution
+  objectBindings?: Map<string, string>;
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;

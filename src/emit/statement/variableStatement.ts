@@ -46,6 +46,21 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
       const isArrayLiteral =
         node.initializer &&
         node.initializer.kind === SyntaxKind.ArrayLiteralExpression;
+      const isObjectLiteral =
+        node.initializer &&
+        node.initializer.kind === SyntaxKind.ObjectLiteralExpression;
+
+      // Track object bindings for property access resolution
+      if (
+        isObjectLiteral &&
+        initializer &&
+        typeof (initializer as any).getObjectId === 'function'
+      ) {
+        if (!option.objectBindings) {
+          option.objectBindings = new Map();
+        }
+        option.objectBindings.set(varName, (initializer as any).getObjectId());
+      }
 
       // Check if this variable is captured by a nested function (should be stored in closure)
       const isCapturedVar = option.capturedVars?.has(varName) ?? false;
@@ -77,6 +92,9 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
         } else if (isArrayLiteral) {
           // For array literals, store the pointer to the array
           declarationStrings.push(`int* ${varName} = ${initString};\n`);
+        } else if (isObjectLiteral) {
+          // For object literals, use void* type
+          declarationStrings.push(`void* ${varName} = ${initString};\n`);
         } else if (initString) {
           // Regular variable with initializer
           declarationStrings.push(`${varType} ${varName} = ${initString};\n`);
