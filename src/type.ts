@@ -31,6 +31,11 @@ export interface EmitterOption {
   catchVariable?: string;
   arrays?: ArrayDeclaration[];
   objects?: ObjectDeclaration[];
+  // Set of variable names that are captured from outer scopes
+  // These should be accessed via closure_ctx->varName
+  capturedVars?: Set<string>;
+  // Name of the closure context parameter (e.g., "closure_ctx")
+  closureCtxName?: string;
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;

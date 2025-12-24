@@ -1,8 +1,9 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, union } from '../helper.ts';
+import { getEmitNode, tsType2C, union } from '../helper.ts';
 
 export const forStatementEmitter: Emitter<ts.ForStatement> = (node, option) => {
+  const { checker } = option;
   // Special handling for variable declaration initializers
   let initializerEmitNode;
   let initializerString = '';
@@ -16,8 +17,11 @@ export const forStatementEmitter: Emitter<ts.ForStatement> = (node, option) => {
         const firstDecl = declarations[0];
         if (ts.isIdentifier(firstDecl.name) && firstDecl.initializer) {
           const varName = firstDecl.name.getText();
+          const varType =
+            tsType2C(checker.getTypeAtLocation(firstDecl)) || 'int';
           const initializerNode = getEmitNode(firstDecl.initializer, option);
-          initializerString = `${varName} = ${initializerNode.emit()}`;
+          // Emit as a proper C variable declaration
+          initializerString = `${varType} ${varName} = ${initializerNode.emit()}`;
           // Initialize with empty set, then add vars from initializer
           initializerVars = new Set<ts.Identifier>(
             initializerNode.getAllVars()
