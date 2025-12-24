@@ -1,0 +1,6 @@
+function sumTo(n: number): number {
+  let t = n;
+  if (n === 0) return 0;
+  return t + sumTo(n - 1);
+}
+console.log(sumTo(3));

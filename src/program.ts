@@ -69,63 +69,59 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       const statementString = statementEmitNodes
         .map((s) => s.emit())
         .join('\n');
-      // Use a simplified approach with global variables
-      // Collect all unique variable names used in the program
+      // Only collect top-level (module-scope) variables as globals
+      // Variables inside functions will be emitted as C local variables
       const allVars = new Set<string>();
 
-      // Recursively scan the source files for all variables
-      const collectVariables = (node: ts.Node) => {
-        if (ts.isVariableDeclaration(node)) {
-          if (ts.isIdentifier(node.name)) {
-            // Add the variable to our set of all variables
-            allVars.add(node.name.getText());
-          }
-        }
-        ts.forEachChild(node, collectVariables);
-      };
-
-      // Scan all source files
+      // Only collect variables declared at the top level of source files
       tsProgram
         .getSourceFiles()
         .filter((s) => !s.isDeclarationFile)
         .forEach((source) => {
-          ts.forEachChild(source, collectVariables);
+          source.statements.forEach((statement) => {
+            if (ts.isVariableStatement(statement)) {
+              statement.declarationList.declarations.forEach((decl) => {
+                if (ts.isIdentifier(decl.name)) {
+                  allVars.add(decl.name.getText());
+                }
+              });
+            }
+          });
         });
 
-      // Track variable types for function pointers
+      // Track variable types for function pointers (only top-level)
       const varTypes = new Map<string, string>();
 
-      // Scan the source files for function expressions assigned to variables
-      const collectFunctionTypes = (node: ts.Node) => {
-        if (
-          ts.isVariableDeclaration(node) &&
-          ts.isIdentifier(node.name) &&
-          node.initializer &&
-          ts.isFunctionExpression(node.initializer)
-        ) {
-          // The variable is assigned a function expression
-          const varName = node.name.getText();
-          // Get parameter types from the function expression
-          const params = node.initializer.parameters.map((p) => {
-            const typeNode = p.type;
-            return typeNode
-              ? typeNode.getText() === 'number'
-                ? 'int'
-                : 'int'
-              : 'int';
-          });
-          // For now, we're assuming all functions return int
-          varTypes.set(varName, `int (*${varName})(${params.join(', ')})`);
-        }
-        ts.forEachChild(node, collectFunctionTypes);
-      };
-
-      // Scan all source files for function types
+      // Only scan top-level variable declarations for function expressions
       tsProgram
         .getSourceFiles()
         .filter((s) => !s.isDeclarationFile)
         .forEach((source) => {
-          ts.forEachChild(source, collectFunctionTypes);
+          source.statements.forEach((statement) => {
+            if (ts.isVariableStatement(statement)) {
+              statement.declarationList.declarations.forEach((decl) => {
+                if (
+                  ts.isIdentifier(decl.name) &&
+                  decl.initializer &&
+                  ts.isFunctionExpression(decl.initializer)
+                ) {
+                  const varName = decl.name.getText();
+                  const params = decl.initializer.parameters.map((p) => {
+                    const typeNode = p.type;
+                    return typeNode
+                      ? typeNode.getText() === 'number'
+                        ? 'int'
+                        : 'int'
+                      : 'int';
+                  });
+                  varTypes.set(
+                    varName,
+                    `int (*${varName})(${params.join(', ')})`
+                  );
+                }
+              });
+            }
+          });
         });
 
       // Generate global declarations for all variables
@@ -214,6 +210,9 @@ ${option.arrays ? option.arrays.map((arr) => `int ${arr.name}[] = {${arr.values}
 
 // Global variables for closure support
 ${globalDeclarations}
+
+// Closure struct definitions
+${makeDeclareClosure(option)}
 
 ${option.fns.map((f) => f.declare).join('\n')}
 

@@ -131,34 +131,25 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
           : '';
 
         // Check if the function needs a closure context
+        // A nested function is one whose declaration is inside another function
         const needsClosureContext =
           fnDeclare &&
+          (ts.isFunctionDeclaration(fnDeclare) ||
+            ts.isFunctionExpression(fnDeclare)) &&
+          fnDeclare.parent &&
           (ts.isFunctionDeclaration(fnDeclare.parent) ||
-            ts.isFunctionExpression(fnDeclare.parent));
+            ts.isFunctionExpression(fnDeclare.parent) ||
+            ts.isBlock(fnDeclare.parent));
 
         // Get arguments as they are
         let argsList = node.arguments.map((argNode) =>
           getEmitNode(argNode, option).emit()
         );
 
-        // If we need to pass closure context, create one and pass it
-        if (needsClosureContext) {
-          // Need to pass closure_ctx as the first argument
-          const closureName = option.envRecord.closureName || 'closure';
-          const closureCtx = `&(struct ${closureName}) { `;
-
-          // Add all variables from the current scope that might be needed in the called function
-          const closureVars = option.envRecord.allVars;
-          const closureVarInits: string[] = [];
-
-          closureVars.forEach((varIdentifier) => {
-            closureVarInits.push(
-              `.${varIdentifier.getText()} = ${varIdentifier.getText()}`
-            );
-          });
-
-          // Add the closure context as the first argument
-          argsList.unshift(`${closureCtx}${closureVarInits.join(', ')} }`);
+        // If we need to pass closure context, pass the existing closure_ctx pointer
+        if (needsClosureContext && option.closureCtxName) {
+          // Pass the existing closure_ctx as the first argument
+          argsList.unshift(option.closureCtxName);
         }
 
         const args = argsList.join(',');

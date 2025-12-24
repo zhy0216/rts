@@ -1,0 +1,10 @@
+function g(): void {
+  let x = 2;
+  console.log(x);
+}
+function f(): void {
+  let x = 1;
+  g();
+  console.log(x);
+}
+f();

@@ -1,0 +1,10 @@
+function outer(n: number): number {
+  let a = n;
+  function inner(): number {
+    return a;
+  }
+  if (n === 0) return inner();
+  let r = outer(n - 1);
+  return inner() + r;
+}
+console.log(outer(3));

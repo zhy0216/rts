@@ -11,6 +11,15 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
   const declarationStrings: string[] = [];
   const s = new Set<ts.Identifier>();
 
+  // Check if we're inside a function (not at global scope)
+  // Global scope has name 'global', function scopes have different names
+  // Also check if we're inside a block within global scope (for shadowing)
+  const isInsideFunction = envRecord.name !== 'global';
+
+  // Check if this variable statement is at the top level of a source file
+  // by checking if its parent is a SourceFile
+  const isTopLevelDeclaration = ts.isSourceFile(variableSTNode.parent);
+
   variableSTNode.declarationList.declarations.forEach((node) => {
     // Process initializers
     if (node.initializer) {
@@ -22,6 +31,9 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
 
       // Get the variable name
       const varName = node.name.getText();
+
+      // Get the variable type
+      const varType = tsType2C(checker.getTypeAtLocation(node)) || 'int';
 
       // Get initializer if any
       const initializer = initEmitters[varName];
@@ -35,19 +47,56 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
         node.initializer &&
         node.initializer.kind === SyntaxKind.ArrayLiteralExpression;
 
-      // Only emit the initialization as assignment, since declaration is done globally
-      if (initString && initializer) {
+      // Check if this variable is captured by a nested function (should be stored in closure)
+      const isCapturedVar = option.capturedVars?.has(varName) ?? false;
+      const closureCtxName = option.closureCtxName;
+
+      // Emit local variable declarations for:
+      // 1. Variables inside functions
+      // 2. Variables in blocks that are not top-level declarations (e.g., shadowed variables in blocks)
+      const shouldEmitDeclaration = isInsideFunction || !isTopLevelDeclaration;
+
+      if (isCapturedVar && closureCtxName) {
+        // Variable is captured by nested function - store in closure struct
+        if (initString) {
+          declarationStrings.push(
+            `${closureCtxName}->${varName} = ${initString};\n`
+          );
+        } else {
+          declarationStrings.push(`${closureCtxName}->${varName} = 0;\n`);
+        }
+      } else if (shouldEmitDeclaration) {
+        // Emit actual C local variable declarations
         if (
           isFunctionExpr &&
           typeof (initializer as any).getFunctionType === 'function'
         ) {
-          // For function expressions, just assign the function name directly
-          declarationStrings.push(`${varName} = &${initString};\n`);
+          // For function expressions, declare as function pointer and assign
+          const fnType = (initializer as any).getFunctionType();
+          declarationStrings.push(`${fnType} ${varName} = &${initString};\n`);
         } else if (isArrayLiteral) {
           // For array literals, store the pointer to the array
           declarationStrings.push(`int* ${varName} = ${initString};\n`);
+        } else if (initString) {
+          // Regular variable with initializer
+          declarationStrings.push(`${varType} ${varName} = ${initString};\n`);
         } else {
-          declarationStrings.push(`${varName} = ${initString};\n`);
+          // Variable without initializer
+          declarationStrings.push(`${varType} ${varName} = 0;\n`);
+        }
+      } else {
+        // At top-level global scope: only emit assignment (declaration is done in program.ts)
+        if (initString && initializer) {
+          if (
+            isFunctionExpr &&
+            typeof (initializer as any).getFunctionType === 'function'
+          ) {
+            declarationStrings.push(`${varName} = &${initString};\n`);
+          } else if (isArrayLiteral) {
+            declarationStrings.push(`int* ${varName} = ${initString};\n`);
+          } else {
+            declarationStrings.push(`${varName} = ${initString};\n`);
+          }
         }
       }
     }
