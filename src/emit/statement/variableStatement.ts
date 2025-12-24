@@ -92,6 +92,9 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
         } else if (isArrayLiteral) {
           // For array literals, store the pointer to the array
           declarationStrings.push(`int* ${varName} = ${initString};\n`);
+        } else if (isObjectLiteral) {
+          // For object literals, use void* type
+          declarationStrings.push(`void* ${varName} = ${initString};\n`);
         } else if (initString) {
           // Regular variable with initializer
           declarationStrings.push(`${varType} ${varName} = ${initString};\n`);

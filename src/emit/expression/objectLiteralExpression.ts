@@ -51,8 +51,8 @@ export const objectLiteralEmitter: Emitter<ts.ObjectLiteralExpression> = (
         })),
       });
 
-      // Return a dummy pointer that can be used with the for-in loop
-      return `(void*)${objectId}`;
+      // Return the object ID (declared as void* in program.ts)
+      return objectId;
     },
 
     getAllVars: () => {

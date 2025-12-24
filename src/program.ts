@@ -85,10 +85,10 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
           });
         });
 
-      // Track variable types for function pointers (only top-level)
+      // Track variable types for function pointers and object literals (only top-level)
       const varTypes = new Map<string, string>();
 
-      // Only scan top-level variable declarations for function expressions
+      // Only scan top-level variable declarations for special types
       tsProgram
         .getSourceFiles()
         .filter((s) => !s.isDeclarationFile)
@@ -96,24 +96,25 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
           source.statements.forEach((statement) => {
             if (ts.isVariableStatement(statement)) {
               statement.declarationList.declarations.forEach((decl) => {
-                if (
-                  ts.isIdentifier(decl.name) &&
-                  decl.initializer &&
-                  ts.isFunctionExpression(decl.initializer)
-                ) {
+                if (ts.isIdentifier(decl.name) && decl.initializer) {
                   const varName = decl.name.getText();
-                  const params = decl.initializer.parameters.map((p) => {
-                    const typeNode = p.type;
-                    return typeNode
-                      ? typeNode.getText() === 'number'
-                        ? 'int'
-                        : 'int'
-                      : 'int';
-                  });
-                  varTypes.set(
-                    varName,
-                    `int (*${varName})(${params.join(', ')})`
-                  );
+                  if (ts.isFunctionExpression(decl.initializer)) {
+                    const params = decl.initializer.parameters.map((p) => {
+                      const typeNode = p.type;
+                      return typeNode
+                        ? typeNode.getText() === 'number'
+                          ? 'int'
+                          : 'int'
+                        : 'int';
+                    });
+                    varTypes.set(
+                      varName,
+                      `int (*${varName})(${params.join(', ')})`
+                    );
+                  } else if (ts.isObjectLiteralExpression(decl.initializer)) {
+                    // Object literals should be declared as void*
+                    varTypes.set(varName, `void* ${varName}`);
+                  }
                 }
               });
             }
@@ -123,7 +124,7 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       // Generate global declarations for all variables
       const globalDeclarations = Array.from(allVars)
         .map((varName) => {
-          // Use the appropriate type for function pointers
+          // Use the appropriate type for function pointers and object literals
           if (varTypes.has(varName)) {
             return `${varTypes.get(varName)} = NULL;`;
           }
@@ -209,7 +210,7 @@ ${
   option.objects
     ? option.objects
         .map((obj) => {
-          const objDecl = `int ${obj.name} = 0;`;
+          const objDecl = `void* ${obj.name} = NULL;`;
           const propDecls = obj.properties
             .map((prop) => `int ${obj.name}_${prop.name} = ${prop.value};`)
             .join('\n');
