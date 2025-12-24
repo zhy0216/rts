@@ -56,11 +56,7 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 
   for (let source of sources) {
     for (let s of source.statements) {
-      try {
-        statementEmitNodes.push(getEmitNode(s, option));
-      } catch (e) {
-        console.log(e);
-      }
+      statementEmitNodes.push(getEmitNode(s, option));
     }
   }
 
@@ -207,6 +203,21 @@ void* this_context = NULL;
 
 // Array declarations
 ${option.arrays ? option.arrays.map((arr) => `int ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
+
+// Object declarations
+${
+  option.objects
+    ? option.objects
+        .map((obj) => {
+          const objDecl = `int ${obj.name} = 0;`;
+          const propDecls = obj.properties
+            .map((prop) => `int ${obj.name}_${prop.name} = ${prop.value};`)
+            .join('\n');
+          return objDecl + '\n' + propDecls;
+        })
+        .join('\n')
+    : ''
+}
 
 // Global variables for closure support
 ${globalDeclarations}

@@ -33,7 +33,7 @@ export const objectLiteralEmitter: Emitter<ts.ObjectLiteralExpression> = (
         prop !== null
     );
 
-  return {
+  const astNode = {
     emit: () => {
       // For simplicity in this initial implementation, we'll return a pointer to a dummy object
       // In a more complete implementation, we would create a proper C structure
@@ -61,5 +61,10 @@ export const objectLiteralEmitter: Emitter<ts.ObjectLiteralExpression> = (
         ...propertyEmitters.map((prop) => prop.emitter.getAllVars())
       );
     },
+
+    // Expose the object ID for binding tracking
+    getObjectId: () => objectId,
   };
+
+  return astNode;
 };

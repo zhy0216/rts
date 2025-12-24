@@ -10,8 +10,13 @@ export const returnStatementEmitter: Emitter<ts.ReturnStatement> = (
     ? getEmitNode(node.expression, option)
     : undefined;
   return {
-    emit: () =>
-      'return ' + (returnEmitNode ? returnEmitNode.emit() : 'null') + ';',
+    emit: () => {
+      if (returnEmitNode) {
+        return 'return ' + returnEmitNode.emit() + ';';
+      }
+      // For void returns (no expression), just emit 'return;'
+      return 'return;';
+    },
     getAllVars: () => union(returnEmitNode?.getAllVars()),
   };
 };

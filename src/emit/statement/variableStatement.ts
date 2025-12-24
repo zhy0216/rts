@@ -46,6 +46,21 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
       const isArrayLiteral =
         node.initializer &&
         node.initializer.kind === SyntaxKind.ArrayLiteralExpression;
+      const isObjectLiteral =
+        node.initializer &&
+        node.initializer.kind === SyntaxKind.ObjectLiteralExpression;
+
+      // Track object bindings for property access resolution
+      if (
+        isObjectLiteral &&
+        initializer &&
+        typeof (initializer as any).getObjectId === 'function'
+      ) {
+        if (!option.objectBindings) {
+          option.objectBindings = new Map();
+        }
+        option.objectBindings.set(varName, (initializer as any).getObjectId());
+      }
 
       // Check if this variable is captured by a nested function (should be stored in closure)
       const isCapturedVar = option.capturedVars?.has(varName) ?? false;
