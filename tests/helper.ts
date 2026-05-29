@@ -27,8 +27,21 @@ export const testFixtures = (fixturePath: string) => {
         const exePath = `${tempDir}/${file.slice(0, -4)}`;
         const cFile = Bun.file(`${exePath}.c`);
         await Bun.write(cFile, cCode);
-        const proc = Bun.spawn(['cc', `${exePath}.c`, '-o', exePath]);
+        // Remove any stale binary so a failed compile can't silently pass on a
+        // previous run's leftover artifact.
+        if (fs.existsSync(exePath)) {
+          fs.rmSync(exePath);
+        }
+        const proc = Bun.spawn(['cc', `${exePath}.c`, '-o', exePath], {
+          stderr: 'pipe',
+        });
+        const ccStderr = await new Response(proc.stderr).text();
         await proc.exited;
+        if (proc.exitCode !== 0) {
+          throw new Error(
+            `cc failed to compile ${file} (exit ${proc.exitCode}):\n${ccStderr}`
+          );
+        }
         const r = Bun.spawn([exePath]);
         const output = await new Response(r.stdout).text();
         await r.exited;

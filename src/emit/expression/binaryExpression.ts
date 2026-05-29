@@ -36,7 +36,9 @@ const compoundToSimpleOperator = (kind: ts.SyntaxKind): string => {
     case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
       return '>>';
     case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
-      return '>>>';
+      // Handled separately in the emitter (needs an (unsigned int) cast); '>>'
+      // is the closest valid C fallback so this never emits invalid '>>>'.
+      return '>>';
     case ts.SyntaxKind.AmpersandEqualsToken:
       return '&';
     case ts.SyntaxKind.CaretEqualsToken:
@@ -70,6 +72,15 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
 
       // Handle compound assignments
       if (isCompoundAssignment(node.operatorToken.kind)) {
+        // Unsigned right shift assignment (>>>=) needs the same (unsigned int)
+        // cast as the standalone >>> operator; "x >>>= y" is not valid C.
+        if (
+          node.operatorToken.kind ===
+          ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken
+        ) {
+          const expressionString = `${left} = (unsigned int)${left} >> ${right}`;
+          return needParent ? `(${expressionString})` : expressionString;
+        }
         const operator = compoundToSimpleOperator(node.operatorToken.kind);
         const expressionString = `${left} = ${left} ${operator} ${right}`;
         return needParent ? `(${expressionString})` : expressionString;
@@ -95,7 +106,7 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
     getAllVars: () => {
       if (
         isCompoundAssignment(node.operatorToken.kind) ||
-        node.operatorToken.kind & SyntaxKind.EqualsToken
+        node.operatorToken.kind === SyntaxKind.EqualsToken
       ) {
         return union(rightEmitNode.getAllVars());
       }

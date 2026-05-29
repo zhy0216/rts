@@ -36,6 +36,7 @@ import { thisEmitter } from './expression/thisExpression.ts';
 import { instanceofEmitter } from './expression/instanceofExpression.ts';
 import { newEmitter } from './expression/newExpression.ts';
 import { regExpLiteralEmitter } from './expression/regexpLiteralExpression.ts';
+import { parenthesizedExpressionEmitter } from './expression/parenthesizedExpression.ts';
 import { ImportClause, SyntaxKind, TypeFlags } from 'typescript';
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
@@ -51,6 +52,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.Identifier]: identifierEmitter,
   [ts.SyntaxKind.Block]: blockEmitter,
   [ts.SyntaxKind.BinaryExpression]: binaryExpressionEmitter,
+  [ts.SyntaxKind.ParenthesizedExpression]: parenthesizedExpressionEmitter,
   [ts.SyntaxKind.ConditionalExpression]: conditionalExpressionEmitter,
   [ts.SyntaxKind.PrefixUnaryExpression]: unaryExpressionEmitter,
   [ts.SyntaxKind.PostfixUnaryExpression]: unaryExpressionEmitter,
