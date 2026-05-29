@@ -48,13 +48,18 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
             // Generate code for the binary expression and print it
             const exprEmitter = getEmitNode(argument, option);
 
-            // Check if it's a boolean comparison
+            // Check if it's a boolean comparison (every comparison operator
+            // yields a boolean and must print as true/false, not 1/0)
             if (
               [
                 ts.SyntaxKind.EqualsEqualsEqualsToken,
                 ts.SyntaxKind.ExclamationEqualsEqualsToken,
+                ts.SyntaxKind.EqualsEqualsToken,
+                ts.SyntaxKind.ExclamationEqualsToken,
                 ts.SyntaxKind.LessThanToken,
                 ts.SyntaxKind.GreaterThanToken,
+                ts.SyntaxKind.LessThanEqualsToken,
+                ts.SyntaxKind.GreaterThanEqualsToken,
               ].includes(argument.operatorToken.kind)
             ) {
               // Boolean comparison
