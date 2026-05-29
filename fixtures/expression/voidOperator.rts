@@ -1,0 +1,4 @@
+// void operator: evaluates its operand for the side effect, yields undefined
+let x = 1
+void (x = 5)
+console.log(x)

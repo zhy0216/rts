@@ -44,12 +44,13 @@ The first milestone focused on implementing the core language features of rts, i
 - Function types
 - Null type
 
-### 0.0.2 - Advanced Language Features (Completed)
+### 0.0.2 - Advanced Language Features (Partially Implemented)
 
-The second milestone expanded on the core features by implementing more advanced JavaScript language features:
+The second milestone expanded the syntax surface with more advanced JavaScript
+language features:
 
 #### Statements
-- Enhanced control flow: `do-while`, `switch`, `try-catch-finally`
+- Enhanced control flow: `do-while`, `switch`, `try-catch`
 - Extended loop constructs: `for-of`, `for-in`
 - `throw` statement for exception handling
 
@@ -59,6 +60,20 @@ The second milestone expanded on the core features by implementing more advanced
 - Operators: `typeof`, `delete`, `void`, `instanceof`, `in`, `new`
 - Regular expression literals
 - Comma operator
+
+**Status:** functional — `switch`, `throw`, `do-while`, `void`, comma. Partial —
+`try` (no accessible catch binding / `finally`), `for-of`, array/object literals,
+property access (int-only, not first-class). **Stubbed / not yet functional** —
+`typeof`, `in`, `delete`, `instanceof`, `new`, regexp literals, `this`, `for-in`.
+See [docs/NOT_COVERED.md](docs/NOT_COVERED.md) for details.
+
+### 0.0.3 - Real Type Model, Honest Diagnostics & First-Class Aggregates (Planned)
+
+The next milestone turns inward to make the existing surface *sound*: enforce the
+static-typing guarantee (a diagnostics gate), give values a real runtime
+representation (type lowering + first-class objects/arrays), then build float,
+hardened closures, and classes on that foundation. See
+[docs/roadmad/0.0.3.md](docs/roadmad/0.0.3.md).
 
 For a detailed list of implemented features, see [docs/roadmad/0.0.1.md](docs/roadmad/0.0.1.md) and [docs/roadmad/0.0.2.md](docs/roadmad/0.0.2.md).
 

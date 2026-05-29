@@ -1,0 +1,5 @@
+// comma operator: evaluates left-to-right, yields the last operand
+let x = 0
+let y = (x = 5, x + 10)
+console.log(x)
+console.log(y)

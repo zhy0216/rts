@@ -1,0 +1,5 @@
+// Binary logical operators (&&, ||) used as conditions, where C 0/1 matches JS
+let a = 1
+let b = 0
+if (a && b) { console.log(1) } else { console.log(2) }
+if (a || b) { console.log(3) } else { console.log(4) }
