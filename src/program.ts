@@ -23,6 +23,26 @@ const assertNoTypeErrors = (tsProgram: ts.Program): void => {
   throw new Error(`rts: type error(s):\n${message}`);
 };
 
+// `any` is a dynamic escape hatch incompatible with a statically-typed subset:
+// it defeats the diagnostics gate (any value flows anywhere) and cannot be
+// lowered to a concrete C type. Reject explicit `any` annotations in user code.
+// (Implicit inference such as the empty-array literal `[]` is left alone.)
+const assertNoExplicitAny = (sourceFile: ts.SourceFile): void => {
+  const visit = (node: ts.Node): void => {
+    if (node.kind === ts.SyntaxKind.AnyKeyword) {
+      const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+        node.getStart(sourceFile)
+      );
+      throw new Error(
+        `rts: the 'any' type is not allowed (a statically-typed subset cannot ` +
+          `lower a dynamic value) at ${line + 1}:${character + 1}`
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+};
+
 export const transpile = (sourceCode: string): string => {
   const files: Record<string, string> = {
     [RTS_LIB_FILE_NAME]: RTS_LIB_SOURCE,
@@ -61,6 +81,7 @@ export const transpile = (sourceCode: string): string => {
   );
 
   assertNoTypeErrors(tsProgram);
+  assertNoExplicitAny(sourceFiles[SOURCE_FILE_NAME]);
 
   const checker = tsProgram.getTypeChecker();
 

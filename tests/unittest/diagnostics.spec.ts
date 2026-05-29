@@ -34,6 +34,17 @@ describe('Diagnostics gate (static type enforcement)', () => {
         transpile(`function f(): number {\n  return "x";\n}\nconsole.log(f());`)
       ).toThrow();
     });
+    it('an explicit `any` annotation (the dynamic escape hatch)', () => {
+      expect(() => transpile(`let x: any = 5;\nconsole.log(x);`)).toThrow(
+        "'any' type is not allowed"
+      );
+    });
+
+    it('an `any` function parameter', () => {
+      expect(() =>
+        transpile(`function f(x: any): number {\n  return 1;\n}\nf(1);`)
+      ).toThrow("'any' type is not allowed");
+    });
     // Note: calling a non-function (e.g. `let n = 5; n();`) is NOT caught under
     // the minimal { noLib: true } lib — TS suppresses the "not callable" check
     // without the full standard library. Assignability/type-change violations
@@ -69,6 +80,14 @@ describe('Diagnostics gate (static type enforcement)', () => {
       expect(() =>
         transpile(
           `function add(x: number, y: number): number {\n  return x + y;\n}\nconsole.log(add(1, 2));`
+        )
+      ).not.toThrow();
+    });
+
+    it('empty array literal (implicit any[] inference is allowed)', () => {
+      expect(() =>
+        transpile(
+          `let a = [];\nlet c = 0;\nfor (const x of a) {\n  c = c + 1;\n}\nconsole.log(c);`
         )
       ).not.toThrow();
     });
