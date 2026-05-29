@@ -23,14 +23,15 @@ export const arrayLiteralEmitter: Emitter<ts.ArrayLiteralExpression> = (
       // For each element in the array, emit its C representation
       const elementStrings = elementEmitters.map((emitter) => emitter.emit());
 
-      // Add a zero at the end to mark the end of the array for iteration
-      // This is important for our custom for-of implementation
-      elementStrings.push('0');
-
-      // Generate C code for array initialization
-      // In C, we define the array globally and return its name
-      // which will be converted to a pointer when used
-      const arrayValues = elementStrings.join(', ');
+      // Store the element count in slot [0] so the length travels with the
+      // array data: a pointer to the array still recovers the length via [0].
+      // (This replaces the old 0-sentinel scheme, under which a real 0 element
+      // truncated for-of iteration.) for-of reads the count from index 0 and
+      // the elements from index 1 onward.
+      const arrayValues = [
+        String(elementStrings.length),
+        ...elementStrings,
+      ].join(', ');
 
       // Register this array in global declarations
       if (!option.arrays) {

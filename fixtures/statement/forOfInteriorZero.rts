@@ -1,0 +1,13 @@
+// for-of must not stop at interior 0 elements (regression: 0-sentinel bug)
+const nums = [3, 0, 5, 0, 2]
+let sum = 0
+for (const n of nums) {
+  sum = sum + n
+}
+console.log("sum=" + sum)
+const empty = []
+let c = 0
+for (const x of empty) {
+  c = c + 1
+}
+console.log("empty iterations: " + c)

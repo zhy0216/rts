@@ -43,21 +43,15 @@ export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (
       return `
 {
   // For-of loop implementation
-  int ${forOfId}_i = 0;
-  int ${forOfId}_array_size = 0;
   int* ${forOfId}_array_ptr = ${expression};
-  
-  // Find the array size (arrays are terminated with a 0)
-  while (${forOfId}_array_ptr[${forOfId}_i] != 0) {
-    ${forOfId}_array_size++;
-    ${forOfId}_i++;
-  }
-  
+  // The element count is stored in slot [0]; elements start at index 1.
+  int ${forOfId}_array_size = ${forOfId}_array_ptr[0];
+
   // Iterate over each element in the array
   for (int ${forOfId}_index = 0; ${forOfId}_index < ${forOfId}_array_size; ${forOfId}_index++) {
     // Get the current element
-    int ${iterationVarName} = ${forOfId}_array_ptr[${forOfId}_index];
-    
+    int ${iterationVarName} = ${forOfId}_array_ptr[${forOfId}_index + 1];
+
     // Execute the loop body
     ${statement}
   }
