@@ -1,17 +1,44 @@
 import * as ts from 'typescript';
 import { AstNode, Emitter } from './type';
 import { getEmitNode, makeDeclareClosure, union } from './emit/helper';
+import { RTS_LIB_FILE_NAME, RTS_LIB_SOURCE } from './rtsLib';
 // import { CallExpression } from "./expression/CallExpression";
 
+const SOURCE_FILE_NAME = 'source.ts';
+
+// Diagnostics gate: enforce the "statically-typed subset" guarantee. Ill-typed
+// input (type mismatches, runtime type changes, unknown identifiers, ...) is
+// rejected here rather than emitted as invalid C.
+const assertNoTypeErrors = (tsProgram: ts.Program): void => {
+  const diagnostics = ts.getPreEmitDiagnostics(tsProgram);
+  if (diagnostics.length === 0) {
+    return;
+  }
+  const formatHost: ts.FormatDiagnosticsHost = {
+    getCanonicalFileName: (fileName) => fileName,
+    getCurrentDirectory: () => '',
+    getNewLine: () => '\n',
+  };
+  const message = ts.formatDiagnostics(diagnostics, formatHost);
+  throw new Error(`rts: type error(s):\n${message}`);
+};
+
 export const transpile = (sourceCode: string): string => {
-  const sourceFile = ts.createSourceFile(
-    'source.ts',
-    sourceCode,
-    ts.ScriptTarget.ES5,
-    true
-  );
+  const files: Record<string, string> = {
+    [RTS_LIB_FILE_NAME]: RTS_LIB_SOURCE,
+    [SOURCE_FILE_NAME]: sourceCode,
+  };
+  const sourceFiles: Record<string, ts.SourceFile> = {};
+  for (const name of Object.keys(files)) {
+    sourceFiles[name] = ts.createSourceFile(
+      name,
+      files[name],
+      ts.ScriptTarget.ES5,
+      true
+    );
+  }
   const compilerHost: ts.CompilerHost = {
-    getSourceFile: (fileName, target) => sourceFile,
+    getSourceFile: (fileName) => sourceFiles[fileName],
     writeFile: (name, text, writeByteOrderMark) => {},
     getDefaultLibFileName: () => {
       return 'lib.d.ts';
@@ -23,15 +50,18 @@ export const transpile = (sourceCode: string): string => {
     getCurrentDirectory: () => '',
     getDirectories: () => [],
     getNewLine: () => '\n',
-    fileExists: (fileName) => fileName === 'source.ts',
-    readFile: (fileName) => (fileName == 'source.ts' ? sourceCode : undefined),
-    directoryExists: (dirName) => dirName === '',
+    fileExists: (fileName) => fileName in files,
+    readFile: (fileName) => files[fileName],
+    directoryExists: () => true,
   };
   const tsProgram = ts.createProgram(
-    ['source.ts'],
-    { noLib: true },
+    [RTS_LIB_FILE_NAME, SOURCE_FILE_NAME],
+    { noLib: true, target: ts.ScriptTarget.ES5 },
     compilerHost
   );
+
+  assertNoTypeErrors(tsProgram);
+
   const checker = tsProgram.getTypeChecker();
 
   const programEmit = programEmitter(tsProgram, {
