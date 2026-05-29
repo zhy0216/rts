@@ -5,7 +5,7 @@ import {
   diff,
   getEmitNode,
   getFunctionName,
-  tsType2C,
+  tsType2CStrict,
   union,
 } from '../helper.ts';
 
@@ -24,13 +24,13 @@ export const functionExpressionEmitter: Emitter<ts.FunctionExpression> = (
 
   // Build the parameter string from function parameters
   let parameterList = node.parameters.map((p) => {
-    const pType = tsType2C(checker.getTypeAtLocation(p));
+    const pType = tsType2CStrict(checker.getTypeAtLocation(p));
     return `${pType} ${p.name.getText()}`;
   });
 
   const parameterString = parameterList.join(', ');
   const returnType = checker.getReturnTypeOfSignature(signature);
-  const returnTypeStr = tsType2C(returnType);
+  const returnTypeStr = tsType2CStrict(returnType);
   const getAllVars = () => union(bodyNode?.getAllVars());
 
   const functionEnvRecord = connectChildEnvRecord(envRecord, {

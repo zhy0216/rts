@@ -5,7 +5,7 @@ import {
   diff,
   getEmitNode,
   getFunctionName,
-  tsType2C,
+  tsType2CStrict,
   union,
 } from '../helper.ts';
 
@@ -108,7 +108,7 @@ export const functionDeclareEmitter: Emitter<
 
   // Build the parameter string from function parameters
   let parameterList = node.parameters.map((p) => {
-    const pType = tsType2C(checker.getTypeAtLocation(p));
+    const pType = tsType2CStrict(checker.getTypeAtLocation(p));
     return `${pType} ${p.name.getText()}`;
   });
 
@@ -220,7 +220,7 @@ export const functionDeclareEmitter: Emitter<
       }
 
       // Generate the function declaration string
-      const declareString = `${tsType2C(
+      const declareString = `${tsType2CStrict(
         returnType
       )} ${functionName}(${parameterString})`;
 

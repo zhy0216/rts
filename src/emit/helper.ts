@@ -142,6 +142,21 @@ export const tsType2C = (node: ts.Type) => {
   }
 };
 
+// Like tsType2C but fails loudly instead of returning undefined. Used where the
+// result is interpolated directly as a C type with no fallback (function
+// parameter/return types, closure fields), so the literal token "undefined" can
+// never leak into the emitted C. Aggregate/value lowering is the next 0.0.3 item.
+export const tsType2CStrict = (node: ts.Type): string => {
+  const cType = tsType2C(node);
+  if (cType === undefined) {
+    throw new Error(
+      'not support: cannot lower this type to a C type yet (objects, arrays, ' +
+        'and function values are not yet supported as parameter/return/closure types)'
+    );
+  }
+  return cType;
+};
+
 export const union = <T>(...sets: (Set<T> | undefined)[]) => {
   const set = new Set<T>();
   for (const tSet of sets) {
@@ -222,7 +237,7 @@ const structClosure = (
     if (declareVar && ts.isVariableDeclaration(declareVar)) {
       const varName = declareVar.name.getText();
       const typeNode = checker.getTypeAtLocation(declareVar);
-      declareVarStrings[varName] = `${tsType2C(typeNode)} ${varName};`;
+      declareVarStrings[varName] = `${tsType2CStrict(typeNode)} ${varName};`;
     }
   });
 
