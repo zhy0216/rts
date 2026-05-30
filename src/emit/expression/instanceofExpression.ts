@@ -1,6 +1,6 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, union } from '../helper';
+import { getClassRegistry, getEmitNode, union } from '../helper';
 
 /**
  * Emitter for instanceof expressions
@@ -17,11 +17,16 @@ export const instanceofEmitter: Emitter<ts.BinaryExpression> = (
   return {
     emit: () => {
       const left = leftEmitter.emit();
-      const right = rightEmitter.emit();
 
-      // In JavaScript, instanceof checks if an object has a constructor's prototype
-      // In our simplified C implementation, we'll use a helper function
-      return `rts_instanceof(${left}, ${right})`;
+      // Theme 5: for a class right-hand side, compare the instance's stored
+      // __type_id tag against that class's id (looked up in the registry).
+      const cls = getClassRegistry().get(node.right.getText());
+      if (cls) {
+        return `((${left}) != NULL && ((${cls.cName}*)(${left}))->__type_id == ${cls.typeId})`;
+      }
+
+      // Fallback for a non-class right-hand side.
+      return `rts_instanceof(${left}, ${rightEmitter.emit()})`;
     },
 
     getAllVars: () => {

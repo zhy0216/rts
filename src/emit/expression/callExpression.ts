@@ -121,10 +121,16 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
       }
 
       if (ts.isIdentifier(node.expression)) {
-        const symbol = checker.getSymbolAtLocation(node.expression);
+        let symbol = checker.getSymbolAtLocation(node.expression);
         if (!symbol) {
           // something wrong
           return '';
+        }
+        // An imported name resolves to an alias symbol; follow it to the real
+        // declaration so the call uses the same per-file mangled name as the
+        // definition (Theme 6).
+        if (symbol.flags & ts.SymbolFlags.Alias) {
+          symbol = checker.getAliasedSymbol(symbol);
         }
 
         const fnDeclare = symbol.getDeclarations()?.[0];
@@ -198,6 +204,22 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
         const args = argsList.join(',');
 
         return `${fnName}(${args})`;
+      }
+
+      // Method call on a class instance: obj.method(args) lowers to the
+      // standalone receiver function Cls_<Class>_method(obj, args) (Theme 5).
+      if (ts.isPropertyAccessExpression(node.expression)) {
+        const receiver = node.expression.expression;
+        const classDecl = classDeclOfType(checker.getTypeAtLocation(receiver));
+        if (classDecl) {
+          const cName = `Cls_${classDecl.name!.getText()}`;
+          const methodName = node.expression.name.getText();
+          const objStr = getEmitNode(receiver, option).emit();
+          const argStrs = node.arguments.map((a) =>
+            getEmitNode(a, option).emit()
+          );
+          return `${cName}_${methodName}(${[objStr, ...argStrs].join(', ')})`;
+        }
       }
 
       return ``;

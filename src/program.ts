@@ -53,20 +53,41 @@ const assertNoExplicitAny = (sourceFile: ts.SourceFile): void => {
   visit(sourceFile);
 };
 
-export const transpile = (sourceCode: string): string => {
-  const files: Record<string, string> = {
+// Transpile one or more rts modules into a single C translation unit (Theme 6).
+// All files plus the ambient lib go into ONE ts.Program, so the diagnostics gate
+// type-checks ACROSS files and the checker resolves imports; import/export carry
+// no runtime code (no-op emitters), so every module's code is concatenated and
+// cross-file function names are mangled per-file to avoid collisions.
+export const transpileProgram = (
+  files: { name: string; source: string }[]
+): string => {
+  const userFileNames: string[] = [];
+  const fileMap: Record<string, string> = {
     [RTS_LIB_FILE_NAME]: RTS_LIB_SOURCE,
-    [SOURCE_FILE_NAME]: sourceCode,
   };
+  for (const f of files) {
+    const fname = f.name.endsWith('.ts') ? f.name : `${f.name}.ts`;
+    fileMap[fname] = f.source;
+    userFileNames.push(fname);
+  }
+
   const sourceFiles: Record<string, ts.SourceFile> = {};
-  for (const name of Object.keys(files)) {
+  for (const name of Object.keys(fileMap)) {
     sourceFiles[name] = ts.createSourceFile(
       name,
-      files[name],
+      fileMap[name],
       ts.ScriptTarget.ES5,
       true
     );
   }
+
+  // Map a module specifier ("./a", "a", "./a.ts") to one of our in-memory files.
+  const resolveToFile = (spec: string): string | undefined => {
+    const base = spec.replace(/^\.\//, '').replace(/\.ts$/, '');
+    const candidate = `${base}.ts`;
+    return candidate in fileMap ? candidate : undefined;
+  };
+
   const compilerHost: ts.CompilerHost = {
     getSourceFile: (fileName) => sourceFiles[fileName],
     writeFile: (name, text, writeByteOrderMark) => {},
@@ -80,18 +101,25 @@ export const transpile = (sourceCode: string): string => {
     getCurrentDirectory: () => '',
     getDirectories: () => [],
     getNewLine: () => '\n',
-    fileExists: (fileName) => fileName in files,
-    readFile: (fileName) => files[fileName],
+    fileExists: (fileName) => fileName in fileMap,
+    readFile: (fileName) => fileMap[fileName],
     directoryExists: () => true,
+    resolveModuleNames: (moduleNames) =>
+      moduleNames.map((m) => {
+        const resolvedFileName = resolveToFile(m);
+        return resolvedFileName ? { resolvedFileName } : undefined;
+      }),
   };
   const tsProgram = ts.createProgram(
-    [RTS_LIB_FILE_NAME, SOURCE_FILE_NAME],
+    [RTS_LIB_FILE_NAME, ...userFileNames],
     { noLib: true, target: ts.ScriptTarget.ES5 },
     compilerHost
   );
 
   assertNoTypeErrors(tsProgram);
-  assertNoExplicitAny(sourceFiles[SOURCE_FILE_NAME]);
+  for (const name of userFileNames) {
+    assertNoExplicitAny(sourceFiles[name]);
+  }
 
   const checker = tsProgram.getTypeChecker();
 
@@ -116,6 +144,10 @@ export const transpile = (sourceCode: string): string => {
   });
   return programEmit?.emit() ?? '';
 };
+
+// Single-file entry (unchanged public behaviour): delegate to transpileProgram.
+export const transpile = (sourceCode: string): string =>
+  transpileProgram([{ name: SOURCE_FILE_NAME, source: sourceCode }]);
 
 export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
   const statementEmitNodes: AstNode[] = [];

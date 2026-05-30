@@ -26,8 +26,11 @@ describe('Transpile Error Handling', () => {
 
   // Class declarations now lower to a C struct + standalone receiver-passing
   // functions (Theme 5), so they no longer hit the "not support" path.
-  it('now supports class declarations (Theme 5)', () => {
+  // Classes are NOT yet supported (the Theme 5 lowering attempt is disabled
+  // because its codegen emits invalid C). `class` must fail loudly, not emit
+  // broken output.
+  it('rejects class declarations with "not support" (Theme 5 deferred)', () => {
     const cls = `class Foo {\n  x: number\n  constructor(x: number) { this.x = x }\n}\nconsole.log(new Foo(1).x);`;
-    expect(() => transpile(cls)).not.toThrow();
+    expect(() => transpile(cls)).toThrow('not support');
   });
 });

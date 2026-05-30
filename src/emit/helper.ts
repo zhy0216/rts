@@ -86,7 +86,11 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
   [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
-  [ts.SyntaxKind.ClassDeclaration]: classDeclarationEmitter,
+  // NOTE: ClassDeclaration is intentionally NOT wired up. A Theme 5 attempt
+  // exists in ./statement/classDeclaration.ts but its codegen is broken (wrong
+  // receiver on member access, the constructor body leaks into main(), ctor args
+  // are dropped). Per rts's "fail loudly, never emit broken C" rule, `class`
+  // throws "not support" until that lowering is rewritten. See 0.0.3.md Theme 5.
   // Module syntax carries no runtime code of its own (Theme 6): imported symbols
   // are resolved structurally by the checker, and all files are concatenated into
   // one C translation unit. `export function` / `export const` keep their normal
