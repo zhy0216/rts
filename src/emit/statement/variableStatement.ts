@@ -1,6 +1,12 @@
 import { AstNode, Emitter } from '../../type';
 import ts, { TypeFlags, SyntaxKind } from 'typescript';
-import { arrayElementCType, getEmitNode, tsType2C, union } from '../helper';
+import {
+  arrayElementCType,
+  getEmitNode,
+  loweredType,
+  tsType2C,
+  union,
+} from '../helper';
 
 export const variableStatement: Emitter<ts.VariableStatement> = (
   variableSTNode,
@@ -50,18 +56,6 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
         node.initializer &&
         node.initializer.kind === SyntaxKind.ObjectLiteralExpression;
 
-      // Track object bindings for property access resolution
-      if (
-        isObjectLiteral &&
-        initializer &&
-        typeof (initializer as any).getObjectId === 'function'
-      ) {
-        if (!option.objectBindings) {
-          option.objectBindings = new Map();
-        }
-        option.objectBindings.set(varName, (initializer as any).getObjectId());
-      }
-
       // Check if this variable is captured by a nested function (should be stored in closure)
       const isCapturedVar = option.capturedVars?.has(varName) ?? false;
       const closureCtxName = option.closureCtxName;
@@ -95,8 +89,11 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
           const ptr = `${arrayElementCType(checker.getTypeAtLocation(node))}*`;
           declarationStrings.push(`${ptr} ${varName} = ${initString};\n`);
         } else if (isObjectLiteral) {
-          // For object literals, use void* type
-          declarationStrings.push(`void* ${varName} = ${initString};\n`);
+          // Object literals lower to a named C struct, declared by value.
+          const structType = loweredType(checker.getTypeAtLocation(node));
+          declarationStrings.push(
+            `${structType} ${varName} = ${initString};\n`
+          );
         } else if (initString) {
           // Regular variable with initializer
           declarationStrings.push(`${varType} ${varName} = ${initString};\n`);

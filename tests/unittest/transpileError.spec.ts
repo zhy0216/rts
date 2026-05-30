@@ -16,12 +16,16 @@ describe('Transpile Error Handling', () => {
     expect(() => transpile(unsupportedCode)).toThrow('not support');
   });
 
-  it('should fail loudly (not emit the token "undefined") for an object-typed function parameter', () => {
-    // The diagnostics gate accepts this (it is well-typed TypeScript), but
-    // there is no C type for an object yet, so emission must throw a clear
-    // "not support" error instead of leaking `undefined` as a C type.
+  it('lowers an object-typed function parameter to a C struct (Theme 2)', () => {
+    // Object shapes now lower to named C structs, so an object-typed parameter
+    // and return are supported by value. Transpilation must succeed and the
+    // emitted C must reference the struct (not leak "undefined" as a C type).
     const objectParam = `function getA(o: { a: number }): number {\n  return o.a;\n}\nconsole.log(getA({ a: 1 }));`;
 
-    expect(() => transpile(objectParam)).toThrow('not support');
+    const c = transpile(objectParam);
+    expect(c).not.toContain('undefined');
+    // The object shape becomes a named struct typedef.
+    expect(c).toContain('typedef struct');
+    expect(c).toContain('Obj_a');
   });
 });

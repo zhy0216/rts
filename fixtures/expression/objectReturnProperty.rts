@@ -1,0 +1,4 @@
+function mk(): { v: number } {
+  return { v: 9 };
+}
+console.log(mk().v);

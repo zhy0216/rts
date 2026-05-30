@@ -14,7 +14,14 @@ export const literalEmitter: Emitter<
     }
 
     if (node.kind === SyntaxKind.NullKeyword) {
-      return '0'; // In C, NULL is often represented as 0
+      // Tagged null. The TYPE-level distinction lives in `tsType2C`, which lowers
+      // a null/undefined-typed value to `void *` (never int/double), so null is
+      // not conflated with numeric/boolean 0 at the C type level. The literal
+      // itself emits `0`, which in C is simultaneously the null pointer constant
+      // (valid for the `void *` slot) and a valid int — so it composes whether
+      // the surrounding value's lowered type is `void *` or the `int` fallback
+      // that a widened `let x = null` receives.
+      return '0';
     }
 
     // Numeric literals lower to C `double`. A bare integer literal like `6` is an

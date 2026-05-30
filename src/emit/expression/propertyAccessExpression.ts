@@ -1,36 +1,35 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, union } from '../helper';
+import { getEmitNode, isLowerableObjectType } from '../helper';
 
 /**
- * Emitter for property access expressions (obj.property)
- * This allows accessing properties of objects
+ * Emitter for property access expressions (obj.property) (Theme 2).
+ *
+ * Resolves `expr.prop` to a real C struct field access `(expr).prop` for ANY
+ * object-typed expression (identifiers, parameters, call results, array
+ * elements), using the checker to confirm the receiver is a lowerable object
+ * shape. The receiver is parenthesised so compound literals and calls compose.
  */
 export const propertyAccessEmitter: Emitter<ts.PropertyAccessExpression> = (
   node,
   option
 ) => {
-  // Get the expression being accessed (the object)
+  const { checker } = option;
   const expressionEmitter = getEmitNode(node.expression, option);
-
-  // Get the property name
   const propertyName = node.name.getText();
 
   return {
     emit: () => {
-      // Check if the expression is an identifier that has an object binding
-      if (ts.isIdentifier(node.expression)) {
-        const varName = node.expression.getText();
-        const objectId = option.objectBindings?.get(varName);
-        if (objectId) {
-          // Use the object ID for property access
-          return `${objectId}_${propertyName}`;
-        }
+      const expression = expressionEmitter.emit();
+      const receiverType = checker.getTypeAtLocation(node.expression);
+
+      // Object-typed receiver -> C struct field access.
+      if (isLowerableObjectType(receiverType)) {
+        return `(${expression}).${propertyName}`;
       }
 
-      // Fallback: use the expression directly
-      const expression = expressionEmitter.emit();
-      return `${expression}_${propertyName}`;
+      // Non-object receivers (e.g. host members) fall back to the raw form.
+      return `${expression}.${propertyName}`;
     },
 
     getAllVars: () => {

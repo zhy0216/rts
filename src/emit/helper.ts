@@ -1,4 +1,4 @@
-import { Emitter, EmitterOption, EnvRecord } from '../type';
+import { Emitter, EmitterOption, EnvRecord, StructDeclaration } from '../type';
 import * as ts from 'typescript';
 import { emptyStatementEmitter } from './statement/emptyStatement';
 import { callExpressionEmitter } from './expression/callExpression';
@@ -130,6 +130,107 @@ export const getFunctionName = (
   return `__func_${idName}${node.pos}_${node.end}`;
 };
 
+// ---------------------------------------------------------------------------
+// Object shapes -> named C structs (Theme 2)
+//
+// Each distinct object TYPE (shape) lowers to one C struct typedef. Shapes with
+// the same sorted "field:cType" signature collapse to the same struct name, so
+// `{ a: number }` is one C type everywhere it appears (vars, params, returns,
+// array elements). The struct registry is module-global so a single transpile()
+// run shares struct names across all emitters; `resetStructRegistry()` clears it
+// at the start of each run (called from program.ts) to keep runs independent.
+// ---------------------------------------------------------------------------
+
+let structRegistry = new Map<string, StructDeclaration>();
+
+export const resetStructRegistry = (): void => {
+  structRegistry = new Map<string, StructDeclaration>();
+};
+
+export const getStructRegistry = (): Map<string, StructDeclaration> =>
+  structRegistry;
+
+// True for a plain object shape we can lower to a flat C struct: it has call/
+// construct-free properties and is not an array, function, primitive, or union.
+export const isLowerableObjectType = (type: ts.Type): boolean => {
+  const flags = type.getFlags();
+  // Only structural object types (anonymous shapes / interfaces), never unions,
+  // primitives, arrays (which have a number index signature), or callables.
+  if (!(flags & TypeFlags.Object)) {
+    return false;
+  }
+  if (type.getCallSignatures().length > 0) {
+    return false;
+  }
+  // Arrays / tuples expose a numeric index type; those are handled separately.
+  if (type.getNumberIndexType?.()) {
+    return false;
+  }
+  const props = type.getProperties();
+  if (props.length === 0) {
+    return false;
+  }
+  return true;
+};
+
+// Lower a plain object shape to its (registered) named C struct, returning the
+// struct name. Fields lower in declaration order; each field's C type is itself
+// lowered (so nested flat objects, numbers, strings, booleans all work). The
+// stable name is derived from the sorted field:type signature so identical
+// shapes share one struct. Throws if any field type cannot be lowered.
+const lowerObjectType = (type: ts.Type): string => {
+  const props = type.getProperties();
+  const fields = props.map((sym) => {
+    const decl = sym.valueDeclaration ?? sym.getDeclarations()?.[0];
+    const fieldType = decl
+      ? structChecker!.getTypeOfSymbolAtLocation(sym, decl)
+      : (structChecker!.getDeclaredTypeOfSymbol(sym) as ts.Type);
+    return { name: sym.getName(), cType: loweredType(fieldType) };
+  });
+
+  // Stable signature: sorted "name:cType" pairs so field ORDER in the source
+  // does not produce a different struct for the same shape.
+  const signature = fields
+    .map((f) => `${f.name}:${f.cType}`)
+    .slice()
+    .sort()
+    .join(',');
+
+  const existing = structRegistry.get(signature);
+  if (existing) {
+    return existing.name;
+  }
+
+  // Derive a readable, collision-resistant name from the sorted signature.
+  const slug = fields
+    .map((f) => f.name)
+    .slice()
+    .sort()
+    .join('_')
+    .replace(/[^A-Za-z0-9_]/g, '_');
+  let baseName = `Obj_${slug}`;
+  // Disambiguate same-field-name-different-type shapes by appending a counter.
+  let name = baseName;
+  let counter = 1;
+  const usedNames = new Set(
+    Array.from(structRegistry.values()).map((s) => s.name)
+  );
+  while (usedNames.has(name)) {
+    name = `${baseName}_${counter++}`;
+  }
+
+  structRegistry.set(signature, { name, fields });
+  return name;
+};
+
+// The checker is needed to lower field types but `tsType2C`'s signature is fixed
+// to (ts.Type). We stash the active checker here at the start of each transpile
+// (set from program.ts) so object lowering can reach it.
+let structChecker: ts.TypeChecker | undefined;
+export const setStructChecker = (checker: ts.TypeChecker): void => {
+  structChecker = checker;
+};
+
 // Single source of truth for "lowered TS type -> C type". Every site that turns
 // a `ts.Type` into a C type token (function params/returns, closure fields,
 // variable decls, for / for-of loop vars, program-level globals) routes through
@@ -140,10 +241,11 @@ export const getFunctionName = (
 //   string    -> char *
 //   void      -> void
 //   null/undefined -> void *   (the JS "no value" scalars)
+//   object    -> <StructName>  (a named C struct, by value; Theme 2)
 //
-// Returns `undefined` for types it cannot lower yet (objects, arrays, function
-// values) so callers with a legacy fallback keep working; `loweredType` /
-// `tsType2CStrict` turn that into a loud "not support" error instead.
+// Returns `undefined` for types it cannot lower yet (arrays, function values) so
+// callers with a legacy fallback keep working; `loweredType` / `tsType2CStrict`
+// turn that into a loud "not support" error instead.
 export const tsType2C = (node: ts.Type): string | undefined => {
   const flags = node.getFlags();
   if (flags & TypeFlags.NumberLike) {
@@ -156,6 +258,8 @@ export const tsType2C = (node: ts.Type): string | undefined => {
     return 'void';
   } else if (flags & (TypeFlags.Null | TypeFlags.Undefined)) {
     return 'void *';
+  } else if (structChecker && isLowerableObjectType(node)) {
+    return lowerObjectType(node);
   }
   return undefined;
 };

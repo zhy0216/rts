@@ -27,6 +27,16 @@ export interface ObjectDeclaration {
   }[];
 }
 
+// A lowered object shape: a named C struct typedef. Shapes with identical
+// (sorted) field:type signatures collapse to the same struct name, so the same
+// object type is one C type everywhere (params, returns, vars, array elements).
+export interface StructDeclaration {
+  // The derived stable struct name, e.g. "Obj_a_double".
+  name: string;
+  // Fields in declaration order: { fieldName, cType } for the typedef body.
+  fields: { name: string; cType: string }[];
+}
+
 export interface EmitterOption {
   checker: ts.TypeChecker;
   envRecord: EnvRecord;
@@ -34,13 +44,14 @@ export interface EmitterOption {
   catchVariable?: string;
   arrays?: ArrayDeclaration[];
   objects?: ObjectDeclaration[];
+  // Registry of object struct typedefs to emit in the C preamble, keyed by the
+  // struct's stable name (so identical shapes are declared exactly once).
+  structs?: Map<string, StructDeclaration>;
   // Set of variable names that are captured from outer scopes
   // These should be accessed via closure_ctx->varName
   capturedVars?: Set<string>;
   // Name of the closure context parameter (e.g., "closure_ctx")
   closureCtxName?: string;
-  // Map from variable name to object ID for property access resolution
-  objectBindings?: Map<string, string>;
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;

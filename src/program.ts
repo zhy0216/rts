@@ -2,8 +2,11 @@ import * as ts from 'typescript';
 import { AstNode, Emitter } from './type';
 import {
   getEmitNode,
+  getStructRegistry,
   loweredType,
   makeDeclareClosure,
+  resetStructRegistry,
+  setStructChecker,
   union,
 } from './emit/helper';
 import { RTS_LIB_FILE_NAME, RTS_LIB_SOURCE } from './rtsLib';
@@ -90,6 +93,12 @@ export const transpile = (sourceCode: string): string => {
 
   const checker = tsProgram.getTypeChecker();
 
+  // Object shapes lower to named C structs (Theme 2). Make the checker available
+  // to the type-lowering pass and start each run with a fresh struct registry so
+  // struct names are deterministic and runs do not leak into each other.
+  resetStructRegistry();
+  setStructChecker(checker);
+
   const programEmit = programEmitter(tsProgram, {
     checker,
     envRecord: {
@@ -148,6 +157,10 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
       // lowered via the shared mapper so they match the function-expression
       // emitter (e.g. double(*)(double, double)).
       const varTypes = new Map<string, string>();
+      // Top-level object-literal globals lower to a struct by value; track them
+      // so their global declaration uses a struct-valid zero init `{0}` rather
+      // than `= NULL` (which is only valid for the pointer declarators).
+      const structGlobals = new Set<string>();
 
       // Only scan top-level variable declarations for special types
       tsProgram
@@ -180,8 +193,17 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
                       `${returnC} (*${varName})(${paramCs.join(', ')})`
                     );
                   } else if (ts.isObjectLiteralExpression(decl.initializer)) {
-                    // Object literals should be declared as void*
-                    varTypes.set(varName, `void* ${varName}`);
+                    // Object literals lower to a named C struct (by value).
+                    try {
+                      const structName = loweredType(
+                        checker.getTypeAtLocation(decl)
+                      );
+                      varTypes.set(varName, `${structName} ${varName}`);
+                      structGlobals.add(varName);
+                    } catch {
+                      // If the shape cannot be lowered yet, fall through to the
+                      // scalar/global path (will surface a clear error there).
+                    }
                   }
                 }
               });
@@ -219,7 +241,10 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
         .map((varName) => {
           // Function pointers / object literals keep their special declarator.
           if (varTypes.has(varName)) {
-            return `${varTypes.get(varName)} = NULL;`;
+            // Struct-typed (object) globals need a struct-valid zero init; the
+            // pointer declarators (function pointers) use NULL.
+            const init = structGlobals.has(varName) ? '{0}' : 'NULL';
+            return `${varTypes.get(varName)} = ${init};`;
           }
           // Plain scalars: declare with the lowered C type, zero-initialized.
           return `${globalScalarType(varName)} ${varName} = 0;`;
@@ -311,20 +336,17 @@ void* this_context = NULL;
 // the element count, a valid double initializer)
 ${option.arrays ? option.arrays.map((arr) => `${arr.elementType} ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
 
-// Object declarations
-${
-  option.objects
-    ? option.objects
-        .map((obj) => {
-          const objDecl = `void* ${obj.name} = NULL;`;
-          const propDecls = obj.properties
-            .map((prop) => `int ${obj.name}_${prop.name} = ${prop.value};`)
-            .join('\n');
-          return objDecl + '\n' + propDecls;
-        })
-        .join('\n')
-    : ''
-}
+// Object struct typedefs (Theme 2): each distinct object shape is one named C
+// struct; identical shapes share a name. Object literals lower to compound
+// literals of these types and are passed/returned/stored by value.
+${Array.from(getStructRegistry().values())
+  .map(
+    (s) =>
+      `typedef struct {\n${s.fields
+        .map((f) => `  ${f.cType} ${f.name};`)
+        .join('\n')}\n} ${s.name};`
+  )
+  .join('\n')}
 
 // Global variables for closure support
 ${globalDeclarations}
