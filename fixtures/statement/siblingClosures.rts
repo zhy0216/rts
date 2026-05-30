@@ -1,0 +1,12 @@
+function outer() {
+  let v = 5;
+  function f() {
+    console.log(v);
+  }
+  function g() {
+    console.log(v + 1);
+  }
+  f();
+  g();
+}
+outer();

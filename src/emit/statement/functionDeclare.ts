@@ -1,4 +1,4 @@
-import { Emitter } from '../../type';
+import { Emitter, EmitterOption } from '../../type';
 import ts from 'typescript';
 import {
   connectChildEnvRecord,
@@ -25,6 +25,63 @@ const hasNestedFunctionsWithCaptures = (
     ts.forEachChild(node.body, visit);
   }
   return hasNested;
+};
+
+// True if this function lets one of its own nested functions escape, i.e. it
+// `return`s an identifier that resolves to a nested function declaration / a
+// local bound to a nested function expression. An escaping closure's context
+// must outlive the defining function's stack frame, so it is heap-allocated
+// (malloc) rather than stack-allocated. (Theme 4c)
+const returnsANestedClosure = (
+  node: ts.FunctionDeclaration | ts.FunctionExpression
+): boolean => {
+  if (!node.body) {
+    return false;
+  }
+  // Names declared directly inside this function that denote a nested function:
+  // function declarations and locals initialised with a function expression.
+  // Returning any of these lets a closure escape.
+  const nestedFnNames = new Set<string>();
+  const collectNested = (n: ts.Node) => {
+    if (ts.isFunctionDeclaration(n)) {
+      if (n.name) {
+        nestedFnNames.add(n.name.getText());
+      }
+      return; // do not descend into the nested function's own body
+    }
+    if (ts.isFunctionExpression(n)) {
+      return;
+    }
+    if (
+      ts.isVariableDeclaration(n) &&
+      ts.isIdentifier(n.name) &&
+      n.initializer &&
+      ts.isFunctionExpression(n.initializer)
+    ) {
+      nestedFnNames.add(n.name.getText());
+    }
+    ts.forEachChild(n, collectNested);
+  };
+  ts.forEachChild(node.body, collectNested);
+
+  let escapes = false;
+  const visitReturns = (n: ts.Node) => {
+    // Do not descend into nested functions: their returns belong to them.
+    if (ts.isFunctionDeclaration(n) || ts.isFunctionExpression(n)) {
+      return;
+    }
+    if (
+      ts.isReturnStatement(n) &&
+      n.expression &&
+      ts.isIdentifier(n.expression) &&
+      nestedFnNames.has(n.expression.getText())
+    ) {
+      escapes = true;
+    }
+    ts.forEachChild(n, visitReturns);
+  };
+  ts.forEachChild(node.body, visitReturns);
+  return escapes;
 };
 
 // Helper to collect variables that are captured by nested functions
@@ -87,9 +144,18 @@ const collectCapturedVarsForNestedFunctions = (
   return capturedVars;
 };
 
-export const functionDeclareEmitter: Emitter<
-  ts.FunctionDeclaration | ts.FunctionExpression
-> = (node, option) => {
+// Shared emitter core for both function declarations and function expressions.
+// Theme 4: capture analysis, the closure-context setup, and the nested-function
+// plumbing live in ONE place so `function f(){}` and `const f = function(){}`
+// capture identically. The only difference between the two surface forms is the
+// `emitName` flag: a function-expression value returns its generated C name (so
+// the caller can bind it as a function pointer) and exposes its function-pointer
+// C type via getFunctionType().
+export const emitFunctionLike = (
+  node: ts.FunctionDeclaration | ts.FunctionExpression,
+  option: EmitterOption,
+  emitName: boolean
+) => {
   const { checker, fns, envRecord } = option;
 
   const functionName = getFunctionName(node, option);
@@ -157,10 +223,17 @@ export const functionDeclareEmitter: Emitter<
     allVars: new Set(),
   });
 
-  // First pass: collect all variables used in the body to determine captured vars
+  // First pass: collect all variables used in the body to determine captured
+  // vars. This is analysis-only, so it MUST NOT contribute to the real `fns`
+  // list: some emitters (e.g. variableStatement) emit their initializer at
+  // CONSTRUCTION time, and a nested function expression's emit pushes to `fns` —
+  // running the analysis pass against the shared list would register that nested
+  // function twice (C "redefinition"). Give this pass a throwaway `fns` so any
+  // such side effects are discarded; only the second pass uses the real list.
   const tempBodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
+        fns: [],
         envRecord: functionEnvRecord,
       })
     : undefined;
@@ -191,7 +264,49 @@ export const functionDeclareEmitter: Emitter<
         : 'closure_ctx'
       : undefined;
 
-  // Second pass: emit body with captured vars info
+  // An outer function that owns a closure lets it escape when it returns one of
+  // its nested functions; in that case the closure context must outlive this
+  // stack frame, so it is heap-allocated (malloc) instead of stack-allocated.
+  const escapes =
+    varsNeededByClosure.size > 0 &&
+    !isNestedFunction &&
+    returnsANestedClosure(node);
+
+  // C type of this function value, used both for the function-pointer declarator
+  // (function-expression assignment) and exposed via getFunctionType(). Build it
+  // from `parameterList` (NOT node.parameters) so a nested capturing function
+  // expression's pointer type includes the leading `struct …_closure*` context
+  // parameter — otherwise the declarator (`void (*inner)()`) would not match the
+  // C function (`void __func_x(struct …_closure*)`) and the call would read a
+  // garbage context. We keep only the C TYPE of each parameter (drop the name).
+  const paramTypesForPointer = parameterList.map((p) => {
+    // Each entry is "<type tokens> <name>"; strip the trailing identifier.
+    const trimmed = p.trim();
+    const lastSpace = trimmed.lastIndexOf(' ');
+    return lastSpace === -1 ? trimmed : trimmed.slice(0, lastSpace);
+  });
+  const functionTypeStr = `${tsType2CStrict(returnType)} (*)(${paramTypesForPointer.join(
+    ', '
+  )})`;
+
+  // The closure-context setup, prepended into the body as a REAL first statement
+  // (Theme 4a) via the block emitter's prepend hook — no regex surgery on the
+  // rendered body string. Non-escaping closures stay on the stack (cheap, and
+  // matches the prior emitted output); escaping closures malloc so the returned
+  // function's context outlives this frame (Theme 4c).
+  const closureSetupStatements: string[] = [];
+  if (varsNeededByClosure.size > 0 && !isNestedFunction) {
+    const closureName = functionName + '_closure';
+    closureSetupStatements.push(
+      escapes
+        ? `struct ${closureName}* closure_ctx = malloc(sizeof(struct ${closureName}));`
+        : `struct ${closureName} __closure_data; struct ${closureName}* closure_ctx = &__closure_data;`
+    );
+  }
+
+  // Second pass: emit body with captured-vars info AND the structured closure
+  // setup prepended into the block (no string surgery — Theme 4a). This is the
+  // pass that actually contributes the function's `fns` entry.
   const bodyNode = node.body
     ? getEmitNode(node.body, {
         ...option,
@@ -199,6 +314,10 @@ export const functionDeclareEmitter: Emitter<
         capturedVars:
           varsToAccessViaClosure.size > 0 ? varsToAccessViaClosure : undefined,
         closureCtxName: ctxNameForBody,
+        prependStatements:
+          closureSetupStatements.length > 0
+            ? closureSetupStatements
+            : undefined,
       })
     : undefined;
 
@@ -206,18 +325,7 @@ export const functionDeclareEmitter: Emitter<
 
   return {
     emit: () => {
-      // Get the original body
-      let bodyString = bodyNode?.emit() ?? '';
-
-      // If this function has nested functions that capture variables,
-      // we need to create a closure struct at the beginning of the function
-      if (varsNeededByClosure.size > 0 && !isNestedFunction) {
-        const closureName = functionName + '_closure';
-        // Insert closure struct setup at the beginning of the function body
-        // The body is wrapped in { }, so we insert after the opening brace
-        const closureSetup = `struct ${closureName} __closure_data; struct ${closureName}* closure_ctx = &__closure_data;\n`;
-        bodyString = bodyString.replace(/^\{\n/, `{\n${closureSetup}`);
-      }
+      const bodyString = bodyNode?.emit() ?? '{\n}';
 
       // Generate the function declaration string
       const declareString = `${tsType2CStrict(
@@ -229,8 +337,18 @@ export const functionDeclareEmitter: Emitter<
         implementation: `${declareString} ${bodyString};`,
       });
 
-      return '';
+      // A function declaration contributes no inline text; a function
+      // expression value emits its C function name so the caller (variable
+      // declaration / assignment) can bind it as a function pointer.
+      return emitName ? functionName : '';
     },
     getAllVars,
+    // Function-pointer C type, consumed by variableStatement.ts to declare the
+    // holding variable (e.g. `double (*f)(double)`).
+    getFunctionType: () => functionTypeStr,
   };
 };
+
+export const functionDeclareEmitter: Emitter<
+  ts.FunctionDeclaration | ts.FunctionExpression
+> = (node, option) => emitFunctionLike(node, option, false);

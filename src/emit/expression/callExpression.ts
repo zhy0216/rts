@@ -138,6 +138,22 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
             getEmitNode(argNode, option).emit()
           );
 
+          // A function expression nested inside another function lowers to a C
+          // function that takes the closure context as its first parameter
+          // (Theme 4: function expressions share the capture machinery). When we
+          // call such a closure through its pointer, pass the active closure_ctx
+          // so captured-variable access works — exactly as for a nested function
+          // declaration call below.
+          const feNested =
+            fnDeclare.initializer &&
+            fnDeclare.initializer.parent &&
+            (ts.isFunctionDeclaration(fnDeclare.initializer.parent) ||
+              ts.isFunctionExpression(fnDeclare.initializer.parent) ||
+              ts.isBlock(fnDeclare.initializer.parent));
+          if (feNested && option.closureCtxName) {
+            argsList.unshift(option.closureCtxName);
+          }
+
           const args = argsList.join(',');
 
           // Call through the function pointer

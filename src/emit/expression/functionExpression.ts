@@ -1,85 +1,15 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import {
-  connectChildEnvRecord,
-  diff,
-  getEmitNode,
-  getFunctionName,
-  tsType2CStrict,
-  union,
-} from '../helper.ts';
+import { emitFunctionLike } from '../statement/functionDeclare.ts';
 
+// A function expression (`const f = function () {}`) shares ALL of its capture
+// machinery with function declarations: Theme 4 unified the two paths so a
+// function-expression closure captures an outer local identically to a nested
+// function declaration. The only surface difference — a function expression is
+// a VALUE — is handled by the shared core's `emitName` flag, which makes emit()
+// return the generated C function name (for binding as a function pointer) and
+// exposes getFunctionType() for the holding variable's declarator.
 export const functionExpressionEmitter: Emitter<ts.FunctionExpression> = (
   node,
   option
-) => {
-  const { checker, fns, envRecord } = option;
-  // Generate a unique function name for the function expression
-  const functionName = getFunctionName(node, option);
-  const functionType = checker.getTypeAtLocation(node);
-  const signature = checker.getSignaturesOfType(
-    functionType,
-    ts.SignatureKind.Call
-  )[0];
-
-  // Build the parameter string from function parameters
-  let parameterList = node.parameters.map((p) => {
-    const pType = tsType2CStrict(checker.getTypeAtLocation(p));
-    return `${pType} ${p.name.getText()}`;
-  });
-
-  const parameterString = parameterList.join(', ');
-  const returnType = checker.getReturnTypeOfSignature(signature);
-  const returnTypeStr = tsType2CStrict(returnType);
-  const getAllVars = () => union(bodyNode?.getAllVars());
-
-  const functionEnvRecord = connectChildEnvRecord(envRecord, {
-    closureName: envRecord.closureName ?? functionName + '_closure',
-    children: [],
-    name: functionName,
-    boundVars: new Set(
-      node.body?.statements
-        .filter(ts.isVariableStatement)
-        .flatMap((n) =>
-          n.declarationList.declarations
-            .map((d) => d.name)
-            .filter(ts.isIdentifier)
-        )
-    ),
-    parent: envRecord,
-    allVars: new Set(),
-  });
-
-  const bodyNode = node.body
-    ? getEmitNode(node.body, {
-        ...option,
-        envRecord: functionEnvRecord,
-      })
-    : undefined;
-
-  functionEnvRecord.allVars = getAllVars();
-
-  return {
-    emit: () => {
-      // Get the original body
-      let bodyString = bodyNode?.emit() ?? '';
-
-      // Generate the function declaration string
-      const declareString = `${returnTypeStr} ${functionName}(${parameterString})`;
-
-      fns.push({
-        declare: declareString + ';',
-        implementation: `${declareString} ${bodyString};`,
-      });
-
-      // Return a correctly formatted function pointer reference
-      // to be used in variable assignments
-      return functionName;
-    },
-    getAllVars,
-    // Include function type information for use by variable declaration
-    getFunctionType: () => {
-      return `${returnTypeStr} (*)(${parameterList.map((p) => p.split(' ')[0]).join(', ')})`;
-    },
-  };
-};
+) => emitFunctionLike(node, option, true);

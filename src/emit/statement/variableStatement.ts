@@ -80,9 +80,16 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
           isFunctionExpr &&
           typeof (initializer as any).getFunctionType === 'function'
         ) {
-          // For function expressions, declare as function pointer and assign
-          const fnType = (initializer as any).getFunctionType();
-          declarationStrings.push(`${fnType} ${varName} = &${initString};\n`);
+          // For function expressions, declare as a function pointer and assign.
+          // getFunctionType() yields an abstract function-pointer type with an
+          // anonymous declarator `(*)`; splice the variable name into the
+          // declarator (`(*name)`) so the C is valid, e.g.
+          // `double (*)(double)` -> `double (*name)(double)` (Theme 4).
+          const fnType: string = (initializer as any).getFunctionType();
+          const declarator = fnType.includes('(*)')
+            ? fnType.replace('(*)', `(*${varName})`)
+            : `${fnType} ${varName}`;
+          declarationStrings.push(`${declarator} = &${initString};\n`);
         } else if (isArrayLiteral) {
           // For array literals, store the pointer to the array (element-typed:
           // a number array becomes double*).

@@ -52,6 +52,10 @@ export interface EmitterOption {
   capturedVars?: Set<string>;
   // Name of the closure context parameter (e.g., "closure_ctx")
   closureCtxName?: string;
+  // Raw C statements to prepend as the FIRST statements of the next block
+  // (e.g. a function's closure-context setup). Consumed by blockEmitter and not
+  // propagated into nested blocks (Theme 4: structured closure setup).
+  prependStatements?: string[];
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;
