@@ -1,6 +1,12 @@
 import { Emitter } from '../../type';
 import ts, { TypeFlags } from 'typescript';
-import { getEmitNode, getFunctionName, union } from '../helper';
+import {
+  classDeclOfType,
+  getEmitNode,
+  getFunctionName,
+  isClassInstanceType,
+  union,
+} from '../helper';
 
 // True if the expression's static type is string-like (a string literal type or
 // the `string` type). Drives %s vs %g in console.log string concatenation.
@@ -90,6 +96,8 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
                 ts.SyntaxKind.GreaterThanToken,
                 ts.SyntaxKind.LessThanEqualsToken,
                 ts.SyntaxKind.GreaterThanEqualsToken,
+                ts.SyntaxKind.InstanceOfKeyword,
+                ts.SyntaxKind.InKeyword,
               ].includes(argument.operatorToken.kind)
             ) {
               emitStrings.push(

@@ -2,30 +2,32 @@ import { it, describe, expect } from 'bun:test';
 import { transpile } from '../../src/program';
 
 describe('Transpile Error Handling', () => {
-  it('should throw an error when encountering unsupported syntax', () => {
-    // Class declarations are not supported
-    const unsupportedCode = `class Foo { }`;
-
+  // A first-class function VALUE (function-typed parameter/return) still has no C
+  // representation, so emission must fail loudly with a "not support" error
+  // rather than leaking the token `undefined` as a C type. (Escaping closures /
+  // first-class function values remain unimplemented — see docs/roadmad/0.0.3.md
+  // Theme 4.)
+  it('should throw an error for an unlowerable (function-value) type', () => {
+    const unsupportedCode = `function call(cb: () => number): number {\n  return cb();\n}`;
     expect(() => transpile(unsupportedCode)).toThrow();
   });
 
-  it('should throw an error with descriptive message for unsupported syntax', () => {
-    // Class declarations are not supported
-    const unsupportedCode = `class Foo { }`;
-
+  it('should throw a descriptive "not support" error for an unlowerable type', () => {
+    const unsupportedCode = `function call(cb: () => number): number {\n  return cb();\n}`;
     expect(() => transpile(unsupportedCode)).toThrow('not support');
   });
 
-  it('lowers an object-typed function parameter to a C struct (Theme 2)', () => {
-    // Object shapes now lower to named C structs, so an object-typed parameter
-    // and return are supported by value. Transpilation must succeed and the
-    // emitted C must reference the struct (not leak "undefined" as a C type).
+  // Object-typed function parameters now lower to a by-value C struct (Theme 2),
+  // so this is accepted rather than throwing "not support" as it once did.
+  it('now supports object-typed function parameters (Theme 2)', () => {
     const objectParam = `function getA(o: { a: number }): number {\n  return o.a;\n}\nconsole.log(getA({ a: 1 }));`;
+    expect(() => transpile(objectParam)).not.toThrow();
+  });
 
-    const c = transpile(objectParam);
-    expect(c).not.toContain('undefined');
-    // The object shape becomes a named struct typedef.
-    expect(c).toContain('typedef struct');
-    expect(c).toContain('Obj_a');
+  // Class declarations now lower to a C struct + standalone receiver-passing
+  // functions (Theme 5), so they no longer hit the "not support" path.
+  it('now supports class declarations (Theme 5)', () => {
+    const cls = `class Foo {\n  x: number\n  constructor(x: number) { this.x = x }\n}\nconsole.log(new Foo(1).x);`;
+    expect(() => transpile(cls)).not.toThrow();
   });
 });

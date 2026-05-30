@@ -2,14 +2,18 @@ import { Emitter } from '../../type';
 import ts from 'typescript';
 
 /**
- * Emitter for 'this' expressions
- * This implements the JavaScript 'this' keyword in C
+ * Emitter for `this` expressions.
+ *
+ * Inside a class method/constructor body (Theme 5) `this` is the receiver
+ * pointer parameter, whose C name is threaded through option.thisName (e.g.
+ * "self"). Outside class members it falls back to the global this_context.
  */
 export const thisEmitter: Emitter<ts.ThisExpression> = (node, option) => {
   return {
     emit: () => {
-      // In JavaScript, 'this' refers to the current execution context
-      // For a simplified implementation, we'll use a global 'this_context' variable
+      if (option.thisName) {
+        return option.thisName;
+      }
       return 'this_context';
     },
 

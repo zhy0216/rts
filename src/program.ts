@@ -1,10 +1,12 @@
 import * as ts from 'typescript';
 import { AstNode, Emitter } from './type';
 import {
+  getClassRegistry,
   getEmitNode,
   getStructRegistry,
   loweredType,
   makeDeclareClosure,
+  resetClassRegistry,
   resetStructRegistry,
   setStructChecker,
   union,
@@ -97,6 +99,9 @@ export const transpile = (sourceCode: string): string => {
   // to the type-lowering pass and start each run with a fresh struct registry so
   // struct names are deterministic and runs do not leak into each other.
   resetStructRegistry();
+  // Classes (Theme 5) register into a per-run class registry so instance types
+  // lower to `Cls_<Name> *`; clear it each run for deterministic output.
+  resetClassRegistry();
   setStructChecker(checker);
 
   const programEmit = programEmitter(tsProgram, {
@@ -345,6 +350,19 @@ ${Array.from(getStructRegistry().values())
       `typedef struct {\n${s.fields
         .map((f) => `  ${f.cType} ${f.name};`)
         .join('\n')}\n} ${s.name};`
+  )
+  .join('\n')}
+
+// Class struct typedefs (Theme 5, flat model): each user-defined class lowers to
+// one C struct. Field 0 is an int __type_id tag (used by instanceof); the rest
+// are the class's instance fields, lowered via the shared type mapper. Instances
+// are heap-allocated pointers; methods/constructor are standalone C functions.
+${Array.from(getClassRegistry().values())
+  .map(
+    (c) =>
+      `typedef struct ${c.cName} {\n  int __type_id;\n${c.fields
+        .map((f) => `  ${f.cType} ${f.name};`)
+        .join('\n')}\n} ${c.cName};`
   )
   .join('\n')}
 

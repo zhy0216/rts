@@ -1,4 +1,10 @@
-import { Emitter, EmitterOption, EnvRecord, StructDeclaration } from '../type';
+import {
+  ClassDeclaration,
+  Emitter,
+  EmitterOption,
+  EnvRecord,
+  StructDeclaration,
+} from '../type';
 import * as ts from 'typescript';
 import { emptyStatementEmitter } from './statement/emptyStatement';
 import { callExpressionEmitter } from './expression/callExpression';
@@ -37,6 +43,7 @@ import { instanceofEmitter } from './expression/instanceofExpression.ts';
 import { newEmitter } from './expression/newExpression.ts';
 import { regExpLiteralEmitter } from './expression/regexpLiteralExpression.ts';
 import { parenthesizedExpressionEmitter } from './expression/parenthesizedExpression.ts';
+import { classDeclarationEmitter } from './statement/classDeclaration.ts';
 import { ImportClause, SyntaxKind, TypeFlags } from 'typescript';
 
 const nodeToEmitter: Record<string, Emitter<any>> = {
@@ -79,6 +86,7 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.FunctionDeclaration]: functionDeclareEmitter,
   [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
+  [ts.SyntaxKind.ClassDeclaration]: classDeclarationEmitter,
 };
 
 // Helper to check if a binary expression is an 'in' expression
@@ -166,6 +174,11 @@ export const isLowerableObjectType = (type: ts.Type): boolean => {
   if (type.getNumberIndexType?.()) {
     return false;
   }
+  // Class instance types also carry TypeFlags.Object + properties, but they lower
+  // to a pointer-to-struct (Theme 5), not a by-value object struct (Theme 2).
+  if (isClassInstanceType(type)) {
+    return false;
+  }
   const props = type.getProperties();
   if (props.length === 0) {
     return false;
@@ -231,6 +244,54 @@ export const setStructChecker = (checker: ts.TypeChecker): void => {
   structChecker = checker;
 };
 
+// ---------------------------------------------------------------------------
+// Classes -> C struct + standalone methods (Theme 5, flat model)
+//
+// Each `class C` lowers to one C struct `Cls_C` (a stable `__type_id` tag in
+// slot 0 for `instanceof`, then its instance fields) plus standalone C functions
+// for its constructor (`Cls_C_new`) and each method (`Cls_C_<method>`), every one
+// taking an explicit `Cls_C* self` receiver as the first parameter. There is NO
+// prototype chain — own fields/methods only (kept in NOT_COVERED.md). The class
+// registry is module-global (shared across emitters within one transpile run) and
+// cleared by `resetClassRegistry()` at the start of each run for determinism.
+// ---------------------------------------------------------------------------
+
+let classRegistry = new Map<string, ClassDeclaration>();
+let classTypeIdCounter = 1;
+
+export const resetClassRegistry = (): void => {
+  classRegistry = new Map<string, ClassDeclaration>();
+  classTypeIdCounter = 1;
+};
+
+export const getClassRegistry = (): Map<string, ClassDeclaration> =>
+  classRegistry;
+
+// Allocate the next stable per-class type id (used for `instanceof` tagging).
+export const nextClassTypeId = (): number => classTypeIdCounter++;
+
+// The class symbol backing a type, if that type is a class instance type. A
+// class instance type is a structural object whose symbol has a class
+// declaration; this is how we distinguish `new C()` / a `this` receiver from a
+// plain object literal shape (Theme 2 struct) — they both carry TypeFlags.Object.
+export const classDeclOfType = (
+  type: ts.Type
+): ts.ClassDeclaration | undefined => {
+  const symbol = type.getSymbol();
+  if (!symbol) {
+    return undefined;
+  }
+  const decl = symbol.valueDeclaration ?? symbol.getDeclarations()?.[0];
+  if (decl && ts.isClassDeclaration(decl)) {
+    return decl;
+  }
+  return undefined;
+};
+
+// True when a type is a class instance type (lowered to a pointer to its struct).
+export const isClassInstanceType = (type: ts.Type): boolean =>
+  classDeclOfType(type) !== undefined;
+
 // Single source of truth for "lowered TS type -> C type". Every site that turns
 // a `ts.Type` into a C type token (function params/returns, closure fields,
 // variable decls, for / for-of loop vars, program-level globals) routes through
@@ -258,6 +319,12 @@ export const tsType2C = (node: ts.Type): string | undefined => {
     return 'void';
   } else if (flags & (TypeFlags.Null | TypeFlags.Undefined)) {
     return 'void *';
+  } else if (structChecker && isClassInstanceType(node)) {
+    // A class instance lowers to a pointer to its C struct (Theme 5). The struct
+    // name is derived from the class name; the struct itself is emitted by the
+    // class declaration emitter, which registers it in the class registry.
+    const decl = classDeclOfType(node)!;
+    return `Cls_${decl.name!.getText()} *`;
   } else if (structChecker && isLowerableObjectType(node)) {
     return lowerObjectType(node);
   }

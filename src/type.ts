@@ -37,6 +37,23 @@ export interface StructDeclaration {
   fields: { name: string; cType: string }[];
 }
 
+// A lowered class (Theme 5, flat model only — no prototype chain). The class
+// becomes a C struct (a stable per-class type id tag + its instance fields) and
+// standalone C functions for the constructor and each method, each taking an
+// explicit receiver pointer (`StructName* self`) as the first parameter.
+export interface ClassDeclaration {
+  // The TS class name as written (e.g. "Counter").
+  tsName: string;
+  // The generated C struct name (e.g. "Cls_Counter").
+  cName: string;
+  // A stable, unique integer tag stored on every instance for `instanceof`.
+  typeId: number;
+  // Instance fields in declaration order: { fieldName, cType }.
+  fields: { name: string; cType: string }[];
+  // Method names declared on the class (own methods only; flat model).
+  methods: Set<string>;
+}
+
 export interface EmitterOption {
   checker: ts.TypeChecker;
   envRecord: EnvRecord;
@@ -56,6 +73,10 @@ export interface EmitterOption {
   // (e.g. a function's closure-context setup). Consumed by blockEmitter and not
   // propagated into nested blocks (Theme 4: structured closure setup).
   prependStatements?: string[];
+  // Theme 5: the C name bound to `this` inside a method/constructor body (the
+  // receiver pointer parameter, e.g. "self"). Undefined outside class members,
+  // where `this` falls back to the global this_context.
+  thisName?: string;
 }
 
 export type Emitter<T = ts.Node> = (node: T, option: EmitterOption) => AstNode;
