@@ -2,6 +2,41 @@ import { Emitter } from '../../type';
 import ts, { TypeFlags } from 'typescript';
 import { getEmitNode, getFunctionName, union } from '../helper';
 
+// True if the expression's static type is string-like (a string literal type or
+// the `string` type). Drives %s vs %g in console.log string concatenation.
+const isStringLikeArg = (
+  node: ts.Expression,
+  checker: ts.TypeChecker
+): boolean => {
+  return (
+    (checker.getTypeAtLocation(node).getFlags() & TypeFlags.StringLike) !== 0
+  );
+};
+
+// Pick the printf-based printer for a console.log argument from its lowered type:
+//   number  -> rts_print_number(expr)   (ints clean, floats via %g)
+//   string  -> printf("%s\n", expr)     (no surrounding quotes)
+//   boolean -> printf("%s\n", expr ? "true" : "false")
+// Falls back to the number printer for anything else (numbers dominate the
+// current fixtures and lower to a printable double). `arg` (when given) lets us
+// recognise expressions whose C value is a string even if the checker's static
+// type is not flagged StringLike under the minimal noLib (e.g. `typeof`, which
+// always emits a C string literal).
+const consolePrint = (
+  type: ts.Type,
+  expr: string,
+  arg?: ts.Expression
+): string => {
+  const flags = type.getFlags();
+  if ((arg && ts.isTypeOfExpression(arg)) || flags & TypeFlags.StringLike) {
+    return `printf("%s\\n", ${expr})`;
+  }
+  if (flags & TypeFlags.BooleanLike) {
+    return `printf("%s\\n", ${expr} ? "true" : "false")`;
+  }
+  return `rts_print_number(${expr})`;
+};
+
 export const callExpressionEmitter: Emitter<ts.CallExpression> = (
   node,
   option
@@ -20,36 +55,31 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
 
         // Handle different expression types
         if (ts.isBinaryExpression(argument)) {
-          // Handle string concatenation
+          // String concatenation: a `+` with at least one string operand. Emit a
+          // single printf, using %s for the string part and %g for the numeric
+          // part (the fixtures only concatenate small numbers).
           if (
             argument.operatorToken.kind === ts.SyntaxKind.PlusToken &&
-            (ts.isStringLiteral(argument.left) ||
-              ts.isStringLiteral(argument.right))
+            (isStringLikeArg(argument.left, checker) ||
+              isStringLikeArg(argument.right, checker))
           ) {
-            // String concatenation case
-            const leftEmitter = getEmitNode(argument.left, option);
-            const rightEmitter = getEmitNode(argument.right, option);
+            const leftFmt = isStringLikeArg(argument.left, checker)
+              ? '%s'
+              : '%g';
+            const rightFmt = isStringLikeArg(argument.right, checker)
+              ? '%s'
+              : '%g';
+            const leftValue = getEmitNode(argument.left, option).emit();
+            const rightValue = getEmitNode(argument.right, option).emit();
 
-            // If left is a string literal and right is a variable or number
-            if (ts.isStringLiteral(argument.left)) {
-              const leftText = argument.left.getText().replace(/"/g, '');
-              const rightValue = rightEmitter.emit();
-
-              emitStrings.push(`printf("${leftText}%d\\n", ${rightValue})`);
-            } else {
-              // Right is a string literal
-              const leftValue = leftEmitter.emit();
-              const rightText = argument.right.getText().replace(/"/g, '');
-
-              emitStrings.push(`printf("%d${rightText}\\n", ${leftValue})`);
-            }
+            emitStrings.push(
+              `printf("${leftFmt}${rightFmt}\\n", ${leftValue}, ${rightValue})`
+            );
           } else {
-            // Handle other binary operations (arithmetic, comparison, etc.)
-            // Generate code for the binary expression and print it
+            // Other binary operations (arithmetic, comparison, etc.)
             const exprEmitter = getEmitNode(argument, option);
 
-            // Check if it's a boolean comparison (every comparison operator
-            // yields a boolean and must print as true/false, not 1/0)
+            // Comparison operators yield a boolean -> print true/false, not 1/0.
             if (
               [
                 ts.SyntaxKind.EqualsEqualsEqualsToken,
@@ -62,37 +92,21 @@ export const callExpressionEmitter: Emitter<ts.CallExpression> = (
                 ts.SyntaxKind.GreaterThanEqualsToken,
               ].includes(argument.operatorToken.kind)
             ) {
-              // Boolean comparison
               emitStrings.push(
                 `printf("%s\\n", ${exprEmitter.emit()} ? "true" : "false")`
               );
             } else {
-              // Arithmetic operation
-              emitStrings.push(`printf("%d\\n", ${exprEmitter.emit()})`);
+              // Arithmetic / bitwise / assignment expression: its static type
+              // drives the printer (number -> rts_print_number, etc.).
+              emitStrings.push(consolePrint(type, exprEmitter.emit()));
             }
           }
         } else {
-          // Handle simple cases (literals and identifiers)
-          if (type.isStringLiteral()) {
-            emitStrings.push(
-              `printf("\\"${argument.getText().replace(/"/g, '')}\\"\\n")`
-            );
-          } else if (type.getFlags() & TypeFlags.NumberLike) {
-            // Number type
-            emitStrings.push(
-              `printf("%d\\n", ${getEmitNode(argument, option).emit()})`
-            );
-          } else if (type.getFlags() & TypeFlags.BooleanLike) {
-            // Boolean type
-            emitStrings.push(
-              `printf("%s\\n", ${getEmitNode(argument, option).emit()} ? "true" : "false")`
-            );
-          } else {
-            // Default case - try to print as a number
-            emitStrings.push(
-              `printf("%d\\n", ${getEmitNode(argument, option).emit()})`
-            );
-          }
+          // Simple cases (literals and identifiers): pick the printer from the
+          // operand's static type.
+          emitStrings.push(
+            consolePrint(type, getEmitNode(argument, option).emit(), argument)
+          );
         }
 
         return emitStrings.join(';\n');

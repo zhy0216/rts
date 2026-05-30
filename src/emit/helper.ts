@@ -130,23 +130,42 @@ export const getFunctionName = (
   return `__func_${idName}${node.pos}_${node.end}`;
 };
 
-export const tsType2C = (node: ts.Type) => {
-  if (node.getFlags() & TypeFlags.NumberLike) {
-    return 'int';
-  } else if (node.getFlags() & TypeFlags.StringLike) {
+// Single source of truth for "lowered TS type -> C type". Every site that turns
+// a `ts.Type` into a C type token (function params/returns, closure fields,
+// variable decls, for / for-of loop vars, program-level globals) routes through
+// here so the scalar lowering rules live in exactly one place.
+//
+//   number    -> double   (floating; integers print cleanly via rts_print_number)
+//   boolean   -> int
+//   string    -> char *
+//   void      -> void
+//   null/undefined -> void *   (the JS "no value" scalars)
+//
+// Returns `undefined` for types it cannot lower yet (objects, arrays, function
+// values) so callers with a legacy fallback keep working; `loweredType` /
+// `tsType2CStrict` turn that into a loud "not support" error instead.
+export const tsType2C = (node: ts.Type): string | undefined => {
+  const flags = node.getFlags();
+  if (flags & TypeFlags.NumberLike) {
+    return 'double';
+  } else if (flags & TypeFlags.StringLike) {
     return 'char *';
-  } else if (node.getFlags() & TypeFlags.BooleanLike) {
+  } else if (flags & TypeFlags.BooleanLike) {
     return 'int';
-  } else if (node.getFlags() & TypeFlags.Void) {
+  } else if (flags & TypeFlags.Void) {
     return 'void';
+  } else if (flags & (TypeFlags.Null | TypeFlags.Undefined)) {
+    return 'void *';
   }
+  return undefined;
 };
 
-// Like tsType2C but fails loudly instead of returning undefined. Used where the
-// result is interpolated directly as a C type with no fallback (function
-// parameter/return types, closure fields), so the literal token "undefined" can
-// never leak into the emitted C. Aggregate/value lowering is the next 0.0.3 item.
-export const tsType2CStrict = (node: ts.Type): string => {
+// The dedicated "lowered type -> C type" mapper (Theme 1). Fails loudly instead
+// of leaking the token "undefined" into emitted C. This is the entry point the
+// per-node emitters should call; `tsType2CStrict` is kept as a back-compat alias.
+// Aggregate/value lowering (objects, arrays, function values as types) is owned
+// by the later themes and still throws here.
+export const loweredType = (node: ts.Type): string => {
   const cType = tsType2C(node);
   if (cType === undefined) {
     throw new Error(
@@ -155,6 +174,27 @@ export const tsType2CStrict = (node: ts.Type): string => {
     );
   }
   return cType;
+};
+
+// Back-compat alias for the strict mapper; new code should prefer `loweredType`.
+export const tsType2CStrict = loweredType;
+
+// The C element type for an array-typed value, derived from its number index
+// type (so a `number[]` -> "double"). Defaults to "double" — the only element
+// type the array storage currently supports — when the element type cannot be
+// determined or lowered yet.
+export const arrayElementCType = (arrayType: ts.Type): string => {
+  try {
+    const elementType =
+      arrayType.getNumberIndexType?.() ??
+      (arrayType as any).getNumberIndexType?.();
+    if (elementType) {
+      return loweredType(elementType);
+    }
+  } catch {
+    // fall through to default
+  }
+  return 'double';
 };
 
 export const union = <T>(...sets: (Set<T> | undefined)[]) => {
@@ -237,7 +277,7 @@ const structClosure = (
     if (declareVar && ts.isVariableDeclaration(declareVar)) {
       const varName = declareVar.name.getText();
       const typeNode = checker.getTypeAtLocation(declareVar);
-      declareVarStrings[varName] = `${tsType2CStrict(typeNode)} ${varName};`;
+      declareVarStrings[varName] = `${loweredType(typeNode)} ${varName};`;
     }
   });
 

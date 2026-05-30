@@ -1,0 +1,8 @@
+const nums = [1, 2, 3];
+let sum = 0;
+for (const n of nums) {
+  sum += n;
+  console.log(n);
+}
+console.log(sum);
+console.log(2.5);

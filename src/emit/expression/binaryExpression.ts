@@ -18,6 +18,28 @@ const getOperator = (operator: ts.BinaryOperatorToken): string => {
   }
 };
 
+// True for the integer-only operators (bitwise and signed shifts), in either
+// their standalone (`&`) or compound-assignment (`&=`) form. number lowers to C
+// `double`, so these need their operands cast to `int` before the C operator is
+// valid.
+const isBitwiseOrShiftKind = (kind: ts.SyntaxKind): boolean => {
+  switch (kind) {
+    case ts.SyntaxKind.AmpersandToken:
+    case ts.SyntaxKind.BarToken:
+    case ts.SyntaxKind.CaretToken:
+    case ts.SyntaxKind.LessThanLessThanToken:
+    case ts.SyntaxKind.GreaterThanGreaterThanToken:
+    case ts.SyntaxKind.AmpersandEqualsToken:
+    case ts.SyntaxKind.BarEqualsToken:
+    case ts.SyntaxKind.CaretEqualsToken:
+    case ts.SyntaxKind.LessThanLessThanEqualsToken:
+    case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
+      return true;
+    default:
+      return false;
+  }
+};
+
 // Maps compound assignment operators to their simple binary operator equivalent
 const compoundToSimpleOperator = (kind: ts.SyntaxKind): string => {
   switch (kind) {
@@ -70,30 +92,59 @@ export const binaryExpressionEmitter: Emitter<ts.BinaryExpression> = (
         return expressionString;
       }
 
-      // Handle compound assignments
+      // Handle compound assignments. number lowers to C `double`, so the
+      // integer-only operators (`%`, bitwise, shifts) cannot apply directly: we
+      // lower them through an `int`/`unsigned int` cast and store the result back
+      // as a `double`.
       if (isCompoundAssignment(node.operatorToken.kind)) {
-        // Unsigned right shift assignment (>>>=) needs the same (unsigned int)
-        // cast as the standalone >>> operator; "x >>>= y" is not valid C.
+        // Unsigned right shift assignment (>>>=): cast double->int FIRST (avoids
+        // UB on out-of-range doubles), then to unsigned for JS uint32 semantics.
         if (
           node.operatorToken.kind ===
           ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken
         ) {
-          const expressionString = `${left} = (unsigned int)${left} >> ${right}`;
+          const expressionString = `${left} = (double)((unsigned int)(int)(${left}) >> (int)(${right}))`;
           return needParent ? `(${expressionString})` : expressionString;
         }
+        // Bitwise / signed-shift compound assignments need integer operands.
+        if (isBitwiseOrShiftKind(node.operatorToken.kind)) {
+          const operator = compoundToSimpleOperator(node.operatorToken.kind);
+          const expressionString = `${left} = (double)((int)(${left}) ${operator} (int)(${right}))`;
+          return needParent ? `(${expressionString})` : expressionString;
+        }
+        // Modulo assignment: `%` is invalid on doubles in C -> fmod.
+        if (node.operatorToken.kind === ts.SyntaxKind.PercentEqualsToken) {
+          const expressionString = `${left} = fmod(${left}, ${right})`;
+          return needParent ? `(${expressionString})` : expressionString;
+        }
+        // Arithmetic compound assignment (+= -= *= /=) maps directly on doubles.
         const operator = compoundToSimpleOperator(node.operatorToken.kind);
         const expressionString = `${left} = ${left} ${operator} ${right}`;
         return needParent ? `(${expressionString})` : expressionString;
       }
 
-      // Special handling for unsigned right shift operator (>>>)
+      // Unsigned right shift operator (>>>): cast double->int first, then to
+      // unsigned int for JS uint32 semantics.
       if (
         node.operatorToken.kind ===
         ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken
       ) {
-        // In C, unsigned right shift requires typecasting to handle it properly
-        // We'll use a combination of right shift and bitwise AND to simulate JavaScript's >>> behavior
-        const expressionString = `(unsigned int)${left} >> ${right}`;
+        const expressionString = `((unsigned int)(int)(${left}) >> (int)(${right}))`;
+        return needParent ? `(${expressionString})` : expressionString;
+      }
+
+      // Bitwise / signed-shift operators need integer operands (doubles are not
+      // valid for `& | ^ << >>` in C): lower to ((int)(left) OP (int)(right)).
+      if (isBitwiseOrShiftKind(node.operatorToken.kind)) {
+        const expressionString = `((int)(${left}) ${getOperator(
+          node.operatorToken
+        )} (int)(${right}))`;
+        return needParent ? `(${expressionString})` : expressionString;
+      }
+
+      // Modulo: `%` is invalid on doubles in C -> fmod(a, b).
+      if (node.operatorToken.kind === ts.SyntaxKind.PercentToken) {
+        const expressionString = `fmod(${left}, ${right})`;
         return needParent ? `(${expressionString})` : expressionString;
       }
 

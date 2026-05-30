@@ -14,6 +14,9 @@ export interface CFunction {
 export interface ArrayDeclaration {
   name: string;
   values: string;
+  // C element type for the global array storage (e.g. "double"). number arrays
+  // lower to double[]; the length sentinel in slot [0] is a valid double too.
+  elementType: string;
 }
 
 export interface ObjectDeclaration {

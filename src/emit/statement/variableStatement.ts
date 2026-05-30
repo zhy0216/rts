@@ -1,6 +1,6 @@
 import { AstNode, Emitter } from '../../type';
 import ts, { TypeFlags, SyntaxKind } from 'typescript';
-import { getEmitNode, tsType2C, union } from '../helper';
+import { arrayElementCType, getEmitNode, tsType2C, union } from '../helper';
 
 export const variableStatement: Emitter<ts.VariableStatement> = (
   variableSTNode,
@@ -90,8 +90,10 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
           const fnType = (initializer as any).getFunctionType();
           declarationStrings.push(`${fnType} ${varName} = &${initString};\n`);
         } else if (isArrayLiteral) {
-          // For array literals, store the pointer to the array
-          declarationStrings.push(`int* ${varName} = ${initString};\n`);
+          // For array literals, store the pointer to the array (element-typed:
+          // a number array becomes double*).
+          const ptr = `${arrayElementCType(checker.getTypeAtLocation(node))}*`;
+          declarationStrings.push(`${ptr} ${varName} = ${initString};\n`);
         } else if (isObjectLiteral) {
           // For object literals, use void* type
           declarationStrings.push(`void* ${varName} = ${initString};\n`);
@@ -111,7 +113,8 @@ export const variableStatement: Emitter<ts.VariableStatement> = (
           ) {
             declarationStrings.push(`${varName} = &${initString};\n`);
           } else if (isArrayLiteral) {
-            declarationStrings.push(`int* ${varName} = ${initString};\n`);
+            const ptr = `${arrayElementCType(checker.getTypeAtLocation(node))}*`;
+            declarationStrings.push(`${ptr} ${varName} = ${initString};\n`);
           } else {
             declarationStrings.push(`${varName} = ${initString};\n`);
           }

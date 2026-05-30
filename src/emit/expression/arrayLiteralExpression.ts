@@ -1,6 +1,6 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, union } from '../helper';
+import { arrayElementCType, getEmitNode, union } from '../helper';
 
 /**
  * Emitter for array literal expressions
@@ -10,10 +10,15 @@ export const arrayLiteralEmitter: Emitter<ts.ArrayLiteralExpression> = (
   node,
   option
 ) => {
+  const { checker } = option;
   // Process each element of the array
   const elementEmitters = node.elements.map((element) =>
     getEmitNode(element, option)
   );
+
+  // Lower the element type so a number array becomes double[]. The slot-[0]
+  // count is a plain integer literal, which is a valid double initializer.
+  const elementCType = arrayElementCType(checker.getTypeAtLocation(node));
 
   // Generate a unique ID for this array to avoid naming conflicts
   const arrayId = `array_${node.pos}_${node.end}`;
@@ -41,6 +46,7 @@ export const arrayLiteralEmitter: Emitter<ts.ArrayLiteralExpression> = (
       option.arrays.push({
         name: arrayId,
         values: arrayValues,
+        elementType: elementCType,
       });
 
       // Return the array name which in C context is equivalent to a pointer to the first element

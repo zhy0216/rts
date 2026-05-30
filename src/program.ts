@@ -1,6 +1,11 @@
 import * as ts from 'typescript';
 import { AstNode, Emitter } from './type';
-import { getEmitNode, makeDeclareClosure, union } from './emit/helper';
+import {
+  getEmitNode,
+  loweredType,
+  makeDeclareClosure,
+  union,
+} from './emit/helper';
 import { RTS_LIB_FILE_NAME, RTS_LIB_SOURCE } from './rtsLib';
 // import { CallExpression } from "./expression/CallExpression";
 
@@ -136,7 +141,12 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
           });
         });
 
-      // Track variable types for function pointers and object literals (only top-level)
+      const checker = option.checker;
+
+      // Track the full C declarator string for function pointers and object
+      // literals (only top-level). Function-pointer param/return types are
+      // lowered via the shared mapper so they match the function-expression
+      // emitter (e.g. double(*)(double, double)).
       const varTypes = new Map<string, string>();
 
       // Only scan top-level variable declarations for special types
@@ -150,17 +160,24 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
                 if (ts.isIdentifier(decl.name) && decl.initializer) {
                   const varName = decl.name.getText();
                   if (ts.isFunctionExpression(decl.initializer)) {
-                    const params = decl.initializer.parameters.map((p) => {
-                      const typeNode = p.type;
-                      return typeNode
-                        ? typeNode.getText() === 'number'
-                          ? 'int'
-                          : 'int'
-                        : 'int';
-                    });
+                    let returnC = 'double';
+                    let paramCs: string[] = [];
+                    try {
+                      const sig = checker.getSignatureFromDeclaration(
+                        decl.initializer
+                      );
+                      if (sig) {
+                        returnC = loweredType(sig.getReturnType());
+                      }
+                      paramCs = decl.initializer.parameters.map((p) =>
+                        loweredType(checker.getTypeAtLocation(p))
+                      );
+                    } catch {
+                      // Leave defaults if a type cannot be lowered yet.
+                    }
                     varTypes.set(
                       varName,
-                      `int (*${varName})(${params.join(', ')})`
+                      `${returnC} (*${varName})(${paramCs.join(', ')})`
                     );
                   } else if (ts.isObjectLiteralExpression(decl.initializer)) {
                     // Object literals should be declared as void*
@@ -172,15 +189,40 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
           });
         });
 
+      // Lower a plain global's scalar C type; falls back to int if it cannot be
+      // lowered (e.g. arrays/objects, which are handled by their own declarators).
+      const globalScalarType = (varName: string): string => {
+        for (const source of tsProgram
+          .getSourceFiles()
+          .filter((s) => !s.isDeclarationFile)) {
+          for (const statement of source.statements) {
+            if (!ts.isVariableStatement(statement)) continue;
+            for (const decl of statement.declarationList.declarations) {
+              if (
+                ts.isIdentifier(decl.name) &&
+                decl.name.getText() === varName
+              ) {
+                try {
+                  return loweredType(checker.getTypeAtLocation(decl));
+                } catch {
+                  return 'int';
+                }
+              }
+            }
+          }
+        }
+        return 'int';
+      };
+
       // Generate global declarations for all variables
       const globalDeclarations = Array.from(allVars)
         .map((varName) => {
-          // Use the appropriate type for function pointers and object literals
+          // Function pointers / object literals keep their special declarator.
           if (varTypes.has(varName)) {
             return `${varTypes.get(varName)} = NULL;`;
           }
-          // Default to int for regular variables
-          return `int ${varName} = 0;`;
+          // Plain scalars: declare with the lowered C type, zero-initialized.
+          return `${globalScalarType(varName)} ${varName} = 0;`;
         })
         .join('\n');
 
@@ -189,6 +231,18 @@ export const programEmitter: Emitter<ts.Program> = (tsProgram, option) => {
 #include <stdlib.h>
 #include <setjmp.h>
 #include <string.h>
+#include <math.h>
+
+// Prints a JS number. number lowers to C double; integral values print without a
+// decimal point (3, 1073741822 — never scientific notation), others compactly
+// (1.5). Keeps console.log output matching JS for the supported numeric range.
+void rts_print_number(double d) {
+  if (d == (long long)d) {
+    printf("%lld\\n", (long long)d);
+  } else {
+    printf("%g\\n", d);
+  }
+}
 
 // Error handling infrastructure for throw statements
 typedef struct {
@@ -253,8 +307,9 @@ void* rts_create_regexp(char* pattern, char* flags) {
 // Global variable for 'this' context
 void* this_context = NULL;
 
-// Array declarations
-${option.arrays ? option.arrays.map((arr) => `int ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
+// Array declarations (element-typed: number arrays are double[]; slot [0] holds
+// the element count, a valid double initializer)
+${option.arrays ? option.arrays.map((arr) => `${arr.elementType} ${arr.name}[] = {${arr.values}};`).join('\n') : ''}
 
 // Object declarations
 ${

@@ -1,6 +1,6 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, tsType2C, union } from '../helper.ts';
+import { getEmitNode, loweredType, union } from '../helper.ts';
 
 export const forStatementEmitter: Emitter<ts.ForStatement> = (node, option) => {
   const { checker } = option;
@@ -17,8 +17,9 @@ export const forStatementEmitter: Emitter<ts.ForStatement> = (node, option) => {
         const firstDecl = declarations[0];
         if (ts.isIdentifier(firstDecl.name) && firstDecl.initializer) {
           const varName = firstDecl.name.getText();
-          const varType =
-            tsType2C(checker.getTypeAtLocation(firstDecl)) || 'int';
+          // Lower the loop-variable type through the single mapper (using the
+          // in-scope `option.checker`, destructured above as `checker`).
+          const varType = loweredType(checker.getTypeAtLocation(firstDecl));
           const initializerNode = getEmitNode(firstDecl.initializer, option);
           // Emit as a proper C variable declaration
           initializerString = `${varType} ${varName} = ${initializerNode.emit()}`;

@@ -22,7 +22,9 @@ export const unaryExpressionEmitter: Emitter<
         case ts.SyntaxKind.MinusToken: // Unary minus (-)
           return `-(${operand})`;
         case ts.SyntaxKind.TildeToken: // Bitwise NOT (~)
-          return `~(${operand})`;
+          // `~` is invalid on doubles in C (number lowers to double): cast the
+          // operand to int first, matching the bitwise binary operators.
+          return `~(int)(${operand})`;
         case ts.SyntaxKind.PlusPlusToken: // Increment (++)
           if (ts.isPostfixUnaryExpression(node)) {
             return `(${operand}++)`;

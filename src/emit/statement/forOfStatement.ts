@@ -1,6 +1,6 @@
 import { Emitter } from '../../type';
 import ts from 'typescript';
-import { getEmitNode, union } from '../helper';
+import { arrayElementCType, getEmitNode, union } from '../helper';
 
 /**
  * Emitter for for-of statements
@@ -10,11 +10,18 @@ export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (
   node,
   option
 ) => {
+  const { checker } = option;
   // The statement being executed on each iteration
   const statementEmitter = getEmitNode(node.statement, option);
 
   // The expression being iterated (should be an array-like object)
   const expressionEmitter = getEmitNode(node.expression, option);
+
+  // The C element type of the iterated array (number arrays -> double), so the
+  // pointer/element declarations match the array's storage.
+  const elementCType = arrayElementCType(
+    checker.getTypeAtLocation(node.expression)
+  );
 
   // The initializer (usually a variable declaration)
   let iterationVarName: string;
@@ -43,14 +50,14 @@ export const forOfStatementEmitter: Emitter<ts.ForOfStatement> = (
       return `
 {
   // For-of loop implementation
-  int* ${forOfId}_array_ptr = ${expression};
+  ${elementCType}* ${forOfId}_array_ptr = ${expression};
   // The element count is stored in slot [0]; elements start at index 1.
-  int ${forOfId}_array_size = ${forOfId}_array_ptr[0];
+  int ${forOfId}_array_size = (int)${forOfId}_array_ptr[0];
 
   // Iterate over each element in the array
   for (int ${forOfId}_index = 0; ${forOfId}_index < ${forOfId}_array_size; ${forOfId}_index++) {
     // Get the current element
-    int ${iterationVarName} = ${forOfId}_array_ptr[${forOfId}_index + 1];
+    ${elementCType} ${iterationVarName} = ${forOfId}_array_ptr[${forOfId}_index + 1];
 
     // Execute the loop body
     ${statement}

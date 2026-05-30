@@ -53,11 +53,14 @@ export const switchStatementEmitter: Emitter<ts.SwitchStatement> = (
 
   return {
     emit: () => {
-      const switchExpression = expressionEmitter.emit();
+      // C switch/case require an integer-typed expression and integer constant
+      // case labels. number lowers to C double, so cast both to int. (The
+      // numeric switches this subset supports use integral values.)
+      const switchExpression = `(int)(${expressionEmitter.emit()})`;
       const clausesCode = clauseEmitters
         .map((clause) => {
           if (clause.type === 'case') {
-            const caseExpression = clause.expression.emit();
+            const caseExpression = `(int)(${clause.expression.emit()})`;
             const statementsCode = clause.statements
               .map((stmt) => stmt.emit())
               .join('\n    ');
