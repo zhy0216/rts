@@ -87,6 +87,19 @@ const nodeToEmitter: Record<string, Emitter<any>> = {
   [ts.SyntaxKind.FunctionExpression]: functionExpressionEmitter,
   [ts.SyntaxKind.ReturnStatement]: returnStatementEmitter,
   [ts.SyntaxKind.ClassDeclaration]: classDeclarationEmitter,
+  // Module syntax carries no runtime code of its own (Theme 6): imported symbols
+  // are resolved structurally by the checker, and all files are concatenated into
+  // one C translation unit. `export function` / `export const` keep their normal
+  // declaration node kind and are emitted as usual; only the bare import/export
+  // statements lower to nothing.
+  [ts.SyntaxKind.ImportDeclaration]: () => ({
+    emit: () => '',
+    getAllVars: () => new Set<ts.Identifier>(),
+  }),
+  [ts.SyntaxKind.ExportDeclaration]: () => ({
+    emit: () => '',
+    getAllVars: () => new Set<ts.Identifier>(),
+  }),
 };
 
 // Helper to check if a binary expression is an 'in' expression
@@ -133,9 +146,15 @@ export const getFunctionName = (
   node: ts.FunctionDeclaration | ts.FunctionExpression,
   option: EmitterOption
 ): string => {
-  // TODO: consider multiple files? import, export
   const idName = node.name ? node.name.getText() + '_' : '';
-  return `__func_${idName}${node.pos}_${node.end}`;
+  // Include the defining file in the mangle so functions at the same source
+  // offset in different modules don't collide once all files are linked into one
+  // C translation unit (Theme 6). The same declaration node always yields the
+  // same name, so a cross-file call (resolved to this node via the checker)
+  // mangles identically at the call site and the definition site.
+  const sf = node.getSourceFile();
+  const fileTag = sf ? sf.fileName.replace(/[^a-zA-Z0-9]/g, '_') : '';
+  return `__func_${fileTag}_${idName}${node.pos}_${node.end}`;
 };
 
 // ---------------------------------------------------------------------------
