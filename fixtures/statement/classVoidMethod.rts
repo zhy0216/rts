@@ -1,9 +1,0 @@
-class Greeter {
-  count: number
-  constructor() { this.count = 0 }
-  greet(): void { console.log(42) }
-  bump(): number { this.count = this.count + 1; return this.count }
-}
-let g = new Greeter()
-g.greet()
-console.log(g.bump())
